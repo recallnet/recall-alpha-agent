@@ -36,7 +36,8 @@ export class DiscordService {
     if (!process.env.DISCORD_TOKEN) {
       throw new Error("DISCORD_TOKEN is required");
     }
-    await this.client.login(process.env.DISCORD_TOKEN);
+    const login = await this.client.login(process.env.DISCORD_TOKEN);
+    elizaLogger.log("Discord bot login:", login);
 
     if (!process.env.DISCORD_GUILD_ID) {
       throw new Error("DISCORD_GUILD_ID is required");
