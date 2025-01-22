@@ -18,7 +18,7 @@ export function parseArguments(): {
         type: "string",
         description: "Comma separated list of paths to character JSON files",
       })
-      .parseSync();
+      .parse();
   } catch (error) {
     console.error("Error parsing arguments:", error);
     return {};

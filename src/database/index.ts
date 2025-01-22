@@ -1,4 +1,4 @@
-import { PostgresDatabaseAdapter } from "@elizaos/adapter-postgres";
+import { PostgresDatabaseAdapter } from "../adapter-postgres/src/index.ts";
 import { SqliteDatabaseAdapter } from "@elizaos/adapter-sqlite";
 import Database from "better-sqlite3";
 import path from "path";

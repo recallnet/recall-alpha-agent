@@ -74,6 +74,7 @@ async function startAgent(character: Character, directClient: DirectClient) {
     character.username ??= character.name;
 
     const token = getTokenForProvider(character.modelProvider, character);
+
     const dataDir = path.join(__dirname, "../data");
 
     if (!fs.existsSync(dataDir)) {
@@ -91,7 +92,9 @@ async function startAgent(character: Character, directClient: DirectClient) {
 
     runtime.clients = await initializeClients(character, runtime);
 
-    directClient.registerAgent(runtime);
+    // Ensure compatibility by casting runtime to the expected type
+    const compatibleRuntime = runtime as any;
+    directClient.registerAgent(compatibleRuntime);
 
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
@@ -129,16 +132,14 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
 const startAgents = async () => {
   const directClient = new DirectClient();
   let serverPort = parseInt(settings.SERVER_PORT || "3000");
-  const args = parseArguments();
+  // const args = parseArguments();
 
-  let charactersArg = args.characters || args.character;
+  const charactersArg = "characters/recall.character.json"
   let characters = [character];
 
-  console.log("charactersArg", charactersArg);
   if (charactersArg) {
     characters = await loadCharacters(charactersArg);
   }
-  console.log("characters", characters);
   try {
     for (const character of characters) {
       await startAgent(character, directClient as DirectClient);

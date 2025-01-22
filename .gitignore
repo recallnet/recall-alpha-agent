@@ -1,10 +1,17 @@
-*.ts
-dist
-!index.ts
-!character.ts
-.env
-node_modules
+# Exclude compiled output and dependencies
 dist/
+node_modules/
 
+# Exclude environment and IDE files
+.env
+.idea/
+
+# Exclude database
 db.sqlite
-.idea
+
+# If you want to exclude TypeScript files from a specific directory:
+/src/plugin-discord/dist/**/*.ts
+
+# Or if you want to keep all source TypeScript files but exclude compiled ones:
+/**/*.js
+/**/*.js.map
