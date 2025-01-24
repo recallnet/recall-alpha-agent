@@ -6,9 +6,7 @@ import {
   Message,
   TextChannel,
   BaseMessageOptions,
-  ButtonInteraction,
   Interaction,
-  EmbedBuilder,
 } from "discord.js";
 
 export class DiscordService {

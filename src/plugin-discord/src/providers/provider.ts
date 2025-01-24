@@ -2,7 +2,6 @@ import { IAgentRuntime, Memory, Provider, State } from "@elizaos/core";
 import pkg from "pg";
 const { Pool } = pkg;
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 export const embeddingProvider: Provider = {
   get: async (

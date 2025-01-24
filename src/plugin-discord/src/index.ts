@@ -66,7 +66,7 @@ export class DiscordClient extends EventEmitter {
     this.runtime = runtime;
     this.messageManager = new MessageManager(this);
 
-    // this.client.once(Events.ClientReady, this.onClientReady.bind(this));
+    this.client.once(Events.ClientReady, this.onClientReady.bind(this));
     this.client.login(this.apiToken);
 
     this.setupEventListeners();
@@ -84,20 +84,20 @@ export class DiscordClient extends EventEmitter {
 
   private setupEventListeners() {
     // When joining to a new server
-    // this.client.on("guildCreate", this.handleGuildCreate.bind(this));
+    this.client.on("guildCreate", this.handleGuildCreate.bind(this));
 
     this.client.on('ready', () => {
         console.log(`Bot is ready! Logged in as ${this.client.user?.tag}`);
         this.verifyChannel();
       });
-    // this.client.on(
-    //     Events.MessageReactionAdd,
-    //     this.handleReactionAdd.bind(this)
-    // );
-    // this.client.on(
-    //     Events.MessageReactionRemove,
-    //     this.handleReactionRemove.bind(this)
-    // );
+    this.client.on(
+        Events.MessageReactionAdd,
+        this.handleReactionAdd.bind(this)
+    );
+    this.client.on(
+        Events.MessageReactionRemove,
+        this.handleReactionRemove.bind(this)
+    );
 
     // // Handle voice events with the voice manager
     // this.client.on(
@@ -116,10 +116,10 @@ export class DiscordClient extends EventEmitter {
     );
 
     // Handle a new interaction
-    // this.client.on(
-    //     Events.InteractionCreate,
-    //     this.handleInteractionCreate.bind(this)
-    // );
+    this.client.on(
+        Events.InteractionCreate,
+        this.handleInteractionCreate.bind(this)
+    );
   }
 
   async stop() {
