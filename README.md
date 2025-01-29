@@ -22,6 +22,8 @@ DISCORD_APPLICATION_ID="discord-application-id"
 DISCORD_API_TOKEN="discord-api-token"
 DISCORD_CHANNEL_ID="your-channel-id"
 DISCORD_GUILD_ID="your-server-id"
+OPENAI_API_KEY="your-key"
+POSTGRES_URL="your-pg-url"
 ```
 
 This agent is currently constrained to only engage in the channel defined in your .env file. You can alter this behavior from the [messaging module](src/plugin-discord/src/messages.ts) on line 109.
