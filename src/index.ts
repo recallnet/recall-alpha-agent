@@ -23,6 +23,7 @@ import {
   parseArguments,
 } from "./config/index.ts";
 import { initializeDatabase } from "./database/index.ts";
+import {TwitterService} from "./plugin-discord/src/services/twitter.service.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +96,10 @@ async function startAgent(character: Character, directClient: DirectClient) {
     // Ensure compatibility by casting runtime to the expected type
     const compatibleRuntime = runtime as any;
     directClient.registerAgent(compatibleRuntime);
+
+    const twitterService = new TwitterService();
+    await twitterService.initialize();
+    await twitterService.startMonitoring()
 
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
