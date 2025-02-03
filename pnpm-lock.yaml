@@ -77,6 +77,9 @@ importers:
       better-sqlite3:
         specifier: 11.5.0
         version: 11.5.0
+      bs58:
+        specifier: ^6.0.0
+        version: 6.0.0
       discord.js:
         specifier: ^14.16.1
         version: 14.16.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
