@@ -1,6 +1,6 @@
 import { Scraper } from "agent-twitter-client";
+import { SolanaService } from "./solana.service.ts";
 import { elizaLogger } from "@elizaos/core";
-import { Raydium } from "@raydium-io/raydium-sdk-v2";
 import pg from "pg";
 
 type Pool = pg.Pool;
@@ -12,6 +12,12 @@ interface TwitterUser {
   bio?: string;
 }
 
+interface HasRaydiumPoolActivityResult {
+  hasPool: boolean;
+  isMintable: boolean;
+  lessThanOneDay?: boolean;
+}
+
 const accounts = process.env.TWITTER_ACCOUNTS?.split(",") || [];
 
 export class TwitterService {
@@ -19,6 +25,7 @@ export class TwitterService {
   private pool: Pool;
   private accounts: string[] = accounts;
   private readonly logger = elizaLogger;
+  private solanaService: SolanaService;
 
   constructor() {
     this.scraper = new Scraper();
@@ -30,6 +37,8 @@ export class TwitterService {
     this.pool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
     });
+
+    this.solanaService = new SolanaService();
   }
 
   async initialize() {
@@ -173,12 +182,14 @@ export class TwitterService {
     return newFollows;
   }
 
-  async hasRaydiumPoolWithPump(tokenMint: string): Promise<boolean> {
+  async hasRaydiumPoolWithRecentActivity(
+    tokenMint: string
+  ): Promise<HasRaydiumPoolActivityResult | undefined> {
     try {
       const poolType = "all";
-      const poolSortField = "default";
+      const poolSortField = "volume30d"; // Sorting by 30-day volume
       const sortType = "desc";
-      const pageSize = 1;
+      const pageSize = 1000; // Fetch max pools available
       const page = 1;
 
       // Construct the URL with query parameters
@@ -196,39 +207,76 @@ export class TwitterService {
         elizaLogger.error(
           `❌ Error fetching Raydium pool for ${tokenMint}: ${response.statusText}`
         );
+        return undefined;
       }
       const data = await response.json();
 
-      elizaLogger.info(JSON.stringify(data.data));
-
-      // Ensure `data.data` exists and is properly structured
-      if (!data.success || !data.data || !data.data.data) {
-        console.log(`❌ No pool found for token: ${tokenMint}`);
-        return false;
+      // Ensure valid data structure
+      if (
+        !data.success ||
+        !data.data ||
+        !data.data.data ||
+        data.data.data.length === 0
+      ) {
+        elizaLogger.info(`❌ No pool found for token: ${tokenMint}`);
       }
 
-      // Extract pool token addresses safely
-      const tokenMints = data.data.data
-        .flatMap((pool: any) => [pool.mintA?.address, pool.mintB?.address])
-        .filter(Boolean); // Filter out any `undefined` values
+      let pools = data.data.data;
 
-      // Check if any token mint contains "pump"
-      const hasPumpToken = tokenMints.some((mint: string) =>
-        mint.toLowerCase().includes("pump")
-      );
+      // Convert current time to UNIX timestamp
+      const now = Math.floor(Date.now() / 1000);
+      const oneDayInSeconds = 86400; // 24 hours
 
-      if (hasPumpToken) {
-        console.log(`🚀 Pool found with "pump" token: ${tokenMints}`);
-      } else {
-        console.log(
-          `❌ Pool found, but no "pump" token detected: ${tokenMints}`
+      // Sort pools by `openTime` descending (most recent first)
+      const sortedPools = pools
+        .filter((pool: any) => pool.openTime && pool.openTime !== "0") // Remove pools with missing openTime
+        .sort((a: any, b: any) => Number(b.openTime) - Number(a.openTime));
+
+      // Check if the token is mintable
+      const isMintable = await this.solanaService.isTokenMintable(tokenMint);
+
+      // If there are no pools with valid `openTime`, return false
+      if (sortedPools.length === 0) {
+        elizaLogger.info(
+          `❌ No pools with valid openTime for token: ${tokenMint} - checking if the token is mintable`
         );
+
+        return {
+          hasPool: false,
+          isMintable,
+        };
       }
 
-      return hasPumpToken;
+      // Check if the most recent pool is less than 1 day old
+      const newestPool = sortedPools[0];
+      const isNewerThanOneDay =
+        Number(newestPool.openTime) >= now - oneDayInSeconds;
+
+      if (isNewerThanOneDay) {
+        elizaLogger.log(
+          `🚀 Pool found for ${tokenMint} that is less than 1 day old.`
+        );
+        return {
+          hasPool: true,
+          isMintable,
+          lessThanOneDay: true,
+        };
+      } else {
+        elizaLogger.log(
+          `❌ The newest pool for ${tokenMint} is older than 1 day.`
+        );
+        return {
+          hasPool: true,
+          isMintable,
+          lessThanOneDay: false,
+        };
+      }
     } catch (error: any) {
-      console.error(`❌ Error checking Raydium pool for ${tokenMint}:`, error);
-      return false;
+      elizaLogger.error(
+        `❌ Error checking Raydium pool for ${tokenMint}:`,
+        error
+      );
+      return undefined;
     }
   }
 
@@ -268,15 +316,29 @@ export class TwitterService {
     }
 
     // Check if the token has a Raydium pool with a "pump" token
-    const raydiumPoolHasPump = await this.hasRaydiumPoolWithPump(tokenMint);
+    const raydiumPoolHasPump = await this.hasRaydiumPoolWithRecentActivity(
+      tokenMint
+    );
 
+    // Add logic here to trigger a buy, notify, or further analyze
     if (raydiumPoolHasPump) {
-      this.logger.info(
-        `🚀 Alpha signal detected: ${newFollow.username} (${newFollow.id}) - ` +
-          `Followers: ${followerCount} - Bio: ${newFollow.bio} - Token Mint: ${tokenMint} - Raydium Pool: ✅`
-      );
+      // extract whether the pool is less than 1 day old or is mintable
+      const { lessThanOneDay, isMintable, hasPool } = raydiumPoolHasPump;
 
-      // Add logic here to trigger a buy, notify, or further analyze
+      // Check if the follower count is above a certain threshold
+      if (followerCount > 1000 && hasPool && lessThanOneDay) {
+        this.logger.info(
+          `🚀 Potential alpha opportunity detected! ${newFollow.username} - Token Address: ${tokenMint} - Raydium Pool less than 1 day old: ✅`
+        );
+      } else if (followerCount > 10000 && isMintable) {
+        this.logger.info(
+          `🚀 Potential alpha opportunity detected! ${newFollow.username} - Token Address: ${tokenMint} - Token is mintable: ✅`
+        );
+      } else {
+        this.logger.info(
+          `❌ Not a buy signal: ${newFollow.username} - Token Mint: ${tokenMint} - Raydium Pool: ❌`
+        );
+      }
     } else {
       this.logger.info(
         `❌ Not a buy signal: ${newFollow.username} - Token Mint: ${tokenMint} - Raydium Pool: ❌`
