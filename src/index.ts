@@ -23,7 +23,7 @@ import {
   parseArguments,
 } from "./config/index.ts";
 import { initializeDatabase } from "./database/index.ts";
-import {TwitterService} from "./plugin-discord/src/services/twitter.service.ts";
+import { TwitterService } from "./plugin-discord/src/services/twitter.service.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,7 +45,7 @@ export function createAgent(
   elizaLogger.success(
     elizaLogger.successesTitle,
     "Creating runtime for character",
-    character.name,
+    character.name
   );
 
   nodePlugin ??= createNodePlugin();
@@ -99,7 +99,10 @@ async function startAgent(character: Character, directClient: DirectClient) {
 
     const twitterService = new TwitterService();
     await twitterService.initialize();
-    await twitterService.startMonitoring()
+    // await twitterService.startMonitoring()
+    await twitterService.getBestRaydiumPool(
+      "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump"
+    );
 
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
@@ -108,7 +111,7 @@ async function startAgent(character: Character, directClient: DirectClient) {
   } catch (error) {
     elizaLogger.error(
       `Error starting agent for character ${character.name}:`,
-      error,
+      error
     );
     console.error(error);
     throw error;
@@ -139,7 +142,7 @@ const startAgents = async () => {
   let serverPort = parseInt(settings.SERVER_PORT || "3000");
   // const args = parseArguments();
 
-  const charactersArg = "characters/recall.character.json"
+  const charactersArg = "characters/recall.character.json";
   let characters = [character];
 
   if (charactersArg) {
@@ -171,7 +174,7 @@ const startAgents = async () => {
   }
 
   const isDaemonProcess = process.env.DAEMON_PROCESS === "true";
-  if(!isDaemonProcess) {
+  if (!isDaemonProcess) {
     elizaLogger.log("Chat started. Type 'exit' to quit.");
     const chat = startChat(characters);
     chat();

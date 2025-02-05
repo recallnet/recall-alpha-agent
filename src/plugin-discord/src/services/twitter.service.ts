@@ -1,5 +1,6 @@
 import { Scraper } from "agent-twitter-client";
 import { SolanaService } from "./solana.service.ts";
+import { ApiV3PoolInfoItem } from "@raydium-io/raydium-sdk-v2";
 import { elizaLogger } from "@elizaos/core";
 import pg from "pg";
 
@@ -180,6 +181,74 @@ export class TwitterService {
       await this.evaluatePotentialAlpha(newFollow);
     }
     return newFollows;
+  }
+
+  async getBestRaydiumPool(tokenMint: string): Promise<any | null> {
+    try {
+      const poolType = "all";
+      const poolSortField = "volume30d"; // Sorting by highest trading volume in 30 days
+      const sortType = "desc";
+      const pageSize = 1000; // Fetch max pools available
+      const page = 1;
+
+      const baseUrl = "https://api-v3.raydium.io/pools/info/mint";
+      const url = new URL(baseUrl);
+      url.searchParams.append("mint1", tokenMint);
+      url.searchParams.append("poolType", poolType);
+      url.searchParams.append("poolSortField", poolSortField);
+      url.searchParams.append("sortType", sortType);
+      url.searchParams.append("pageSize", pageSize.toString());
+      url.searchParams.append("page", page.toString());
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        elizaLogger.error(
+          `❌ Error fetching Raydium pools for ${tokenMint}: ${response.statusText}`
+        );
+        return null;
+      }
+
+      const data = await response.json();
+      elizaLogger.log(JSON.stringify(data, null, 2));
+      if (!data.success || !data.data?.data || data.data.data.length === 0) {
+        elizaLogger.info(`❌ No pools found for token: ${tokenMint}`);
+        return null;
+      }
+
+      let pools = data.data.data as ApiV3PoolInfoItem[];
+
+      // ✅ Only consider pools where we can trade SOL or USDC
+      const wsolAddress = "So11111111111111111111111111111111111111112"; // Wrapped SOL
+      const usdcAddress = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // USDC
+
+      const filteredPools = pools.filter(
+        (pool: any) =>
+          pool.baseMint === wsolAddress ||
+          pool.baseMint === usdcAddress ||
+          pool.quoteMint === wsolAddress ||
+          pool.quoteMint === usdcAddress
+      );
+
+      if (filteredPools.length === 0) {
+        elizaLogger.info(`❌ No SOL/USDC pools found for token: ${tokenMint}`);
+        return null;
+      }
+
+      // ✅ Sort pools by highest liquidity
+      filteredPools.sort(
+        (a: any, b: any) => Number(b.liquidity) - Number(a.liquidity)
+      );
+
+      const bestPool = filteredPools[0]; // Select highest liquidity pool
+
+      elizaLogger.info(
+        `✅ Best SOL/USDC pool selected for ${tokenMint}: ${bestPool.id}`
+      );
+      return bestPool;
+    } catch (error) {
+      elizaLogger.error(`❌ Error selecting best pool: ${error}`);
+      return null;
+    }
   }
 
   async hasRaydiumPoolWithRecentActivity(

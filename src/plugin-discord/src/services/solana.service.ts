@@ -1,5 +1,9 @@
-import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { getMint } from "@solana/spl-token";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+  getMint,
+} from "@solana/spl-token";
 import { elizaLogger } from "@elizaos/core";
 import bs58 from "bs58";
 
@@ -42,6 +46,38 @@ export class SolanaService {
         `❌ Error fetching mint info for ${tokenMintAddress}: ${error.message}`
       );
       return false;
+    }
+  }
+  async mintToken(mintAddress: string, recipient: string, amount: number) {
+    try {
+      const mint = new PublicKey(mintAddress); // Token Mint Address
+      const recipientPubKey = new PublicKey(recipient);
+
+      // 🔹 Step 1: Find or create an associated token account for the recipient
+      const recipientTokenAccount = await getOrCreateAssociatedTokenAccount(
+        this.connection,
+        this.wallet, // Fee payer (your wallet)
+        mint, // The token's mint address
+        recipientPubKey // Recipient's wallet address
+      );
+
+      // 🔹 Step 2: Mint the tokens to the recipient's token account
+      const mintTx = await mintTo(
+        this.connection,
+        this.wallet, // Fee payer
+        mint, // Mint address (which token to mint)
+        recipientTokenAccount.address, // Where to send the tokens
+        this.wallet, // Authority that has permission to mint
+        amount * Math.pow(10, 6) // Convert amount to smallest unit (assuming 6 decimals)
+      );
+
+      elizaLogger.info(
+        `✅ Minted ${amount} tokens to ${recipient} in transaction ${mintTx}`
+      );
+      return mintTx;
+    } catch (error) {
+      elizaLogger.error(`❌ Minting failed: ${error}`);
+      throw error;
     }
   }
 }
