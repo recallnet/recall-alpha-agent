@@ -8,7 +8,7 @@ export const twitterPlugin: Plugin = {
   actions: [postAction],
   evaluators: [],
   providers: [],
-  services: [AlphaService.getInstance()],
+  // services: [AlphaService.getInstance()],
 };
 
 export default twitterPlugin;

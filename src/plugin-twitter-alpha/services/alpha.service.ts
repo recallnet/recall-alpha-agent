@@ -1,6 +1,6 @@
 import { Scraper } from 'agent-twitter-client';
 import { SolanaService } from './solana.service.ts';
-import { elizaLogger, Service, ServiceType } from '@elizaos/core';
+import { elizaLogger, IAgentRuntime, Service, ServiceType } from '@elizaos/core';
 import pg from 'pg';
 
 type Pool = pg.Pool;
@@ -24,13 +24,14 @@ export class AlphaService extends Service {
   static serviceType: ServiceType = 'alpha' as ServiceType;
   private scraper: Scraper;
   private pool: Pool;
+  private runtime: IAgentRuntime;
   private accounts: string[] = accounts;
   private readonly logger = elizaLogger;
   private solanaService: SolanaService;
 
-  async initialize() {
+  async initialize(runtime: IAgentRuntime) {
     this.scraper = new Scraper();
-
+    this.runtime = runtime;
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL is not set in the environment variables');
     }

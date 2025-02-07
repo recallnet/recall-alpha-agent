@@ -1,13 +1,9 @@
-import { AutoClientInterface } from "@elizaos/client-auto";
-import { DiscordClientInterface } from "../plugin-discord/src/index.ts";
-import { TelegramClientInterface } from "@elizaos/client-telegram";
-import { TwitterClientInterface } from "@elizaos/client-twitter";
-import { Character, IAgentRuntime } from "@elizaos/core";
+import { AutoClientInterface } from '@elizaos/client-auto';
+import { TelegramClientInterface } from '@elizaos/client-telegram';
+import { TwitterClientInterface } from '../client-twitter/src/index.ts';
+import { Character, IAgentRuntime } from '@elizaos/core';
 
-export async function initializeClients(
-  character: Character,
-  runtime: IAgentRuntime
-) {
+export async function initializeClients(character: Character, runtime: IAgentRuntime) {
   const clients = [];
   const clientTypes = character.clients?.map((str) => str.toLowerCase()) || [];
 
@@ -16,19 +12,15 @@ export async function initializeClients(
   //   if (autoClient) clients.push(autoClient);
   // }
 
-  if (clientTypes.includes("discord")) {
-    clients.push(await DiscordClientInterface.start(runtime));
-  }
-
   // if (clientTypes.includes("telegram")) {
   //   const telegramClient = await TelegramClientInterface.start(runtime);
   //   if (telegramClient) clients.push(telegramClient);
   // }
 
-  // if (clientTypes.includes("twitter")) {
-  //   const twitterClients = await TwitterClientInterface.start(runtime);
-  //   clients.push(twitterClients);
-  // }
+  if (clientTypes.includes('twitter')) {
+    const twitterClients = await TwitterClientInterface.start(runtime);
+    clients.push(twitterClients);
+  }
 
   if (character.plugins?.length > 0) {
     for (const plugin of character.plugins) {
@@ -40,7 +32,7 @@ export async function initializeClients(
     }
   }
 
-  console.log("Clients initialized:", clients);
+  console.log('Clients initialized:', clients);
 
   return clients;
 }

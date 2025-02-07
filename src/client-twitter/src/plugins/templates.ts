@@ -1,7 +1,7 @@
-import { messageCompletionFooter, shouldRespondFooter } from "@elizaos/core";
+import { messageCompletionFooter, shouldRespondFooter } from '@elizaos/core';
 
-export const discordShouldRespondTemplate =
-    `# Task: Decide if {{agentName}} should respond.
+export const twitterShouldRespondTemplate =
+  `# Task: Decide if {{agentName}} should respond.
 About {{agentName}}:
 {{bio}}
 
@@ -69,55 +69,22 @@ If {{agentName}} is conversing with a user and they have not asked to stop, it i
 # INSTRUCTIONS: Choose the option that best describes {{agentName}}'s response to the last message. Ignore messages if they are addressed to someone else.
 ` + shouldRespondFooter;
 
-export const discordVoiceHandlerTemplate =
-    `# Task: Generate conversational voice dialog for {{agentName}}.
-About {{agentName}}:
-{{bio}}
+export const twitterVoiceHandlerTemplate =
+  `# Task: Generate conversational voice dialog for {{agentName}}.
+    About {{agentName}}:
+    {{bio}}
 
-# Attachments
-{{attachments}}
+    # Attachments
+    {{attachments}}
 
-# Capabilities
-Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
+    # Capabilities
+    Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
 
-{{actions}}
+    {{actions}}
 
-{{messageDirections}}
+    {{messageDirections}}
 
-{{recentMessages}}
+    {{recentMessages}}
 
-# Instructions: Write the next message for {{agentName}}. Include an optional action if appropriate. {{actionNames}}
-` + messageCompletionFooter;
-
-export const discordMessageHandlerTemplate =
-    // {{goals}}
-    `# Action Examples
-{{actionExamples}}
-(Action examples are for reference only. Do not use the information from them in your response.)
-
-# Knowledge
-{{knowledge}}
-
-# Task: Generate dialog and actions for the character {{agentName}}.
-About {{agentName}}:
-{{bio}}
-{{lore}}
-
-Examples of {{agentName}}'s dialog and actions:
-{{characterMessageExamples}}
-
-{{providers}}
-
-{{attachments}}
-
-{{actions}}
-
-# Capabilities
-Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
-
-{{messageDirections}}
-
-{{recentMessages}}
-
-# Instructions: Write the next message for {{agentName}}. Include an action, if appropriate. {{actionNames}}
-` + messageCompletionFooter;
+    # Instructions: Write the next message for {{agentName}}. Include an optional action if appropriate. {{actionNames}}
+    ` + messageCompletionFooter;
