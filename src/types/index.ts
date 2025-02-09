@@ -72,6 +72,17 @@ export interface ICotDatabaseAdapter {
     body: string;
   }): Promise<void>;
 
+  /** Get stored following IDs for a Twitter user */
+  getStoredFollowing(username: string): Promise<string[]>;
+
+  /** Insert new Twitter following record */
+  insertTwitterFollowing(params: {
+    username: string;
+    following_id: string;
+    following_username: string;
+    bio?: string;
+  }): Promise<void>;
+
   /** Retrieve unsynced logs */
   getUnsyncedLogs(): Promise<
     {

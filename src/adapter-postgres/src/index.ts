@@ -1042,6 +1042,32 @@ export class PostgresDatabaseAdapter
     }, 'logMemory');
   }
 
+  async getStoredFollowing(username: string): Promise<string[]> {
+    return this.withDatabase(async () => {
+      const { rows } = await this.pool.query(
+        'SELECT following_id FROM twitter_following WHERE username = $1',
+        [username],
+      );
+      return rows.map((row) => row.following_id);
+    }, 'getStoredFollowing');
+  }
+
+  async insertTwitterFollowing(params: {
+    username: string;
+    following_id: string;
+    following_username: string;
+    bio?: string;
+  }): Promise<void> {
+    return this.withDatabase(async () => {
+      await this.pool.query(
+        `INSERT INTO twitter_following (username, following_id, following_username, bio)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (username, following_id) DO NOTHING`,
+        [params.username, params.following_id, params.following_username, params.bio || null],
+      );
+    }, 'insertTwitterFollowing');
+  }
+
   async getUnsyncedLogs(): Promise<
     {
       id: UUID;

@@ -11,9 +11,10 @@ import { initializeDbCache } from './cache/index.ts';
 import { character } from './character.ts';
 import { startChat } from './chat/index.ts';
 import { initializeClients } from './clients/index.ts';
-import { getTokenForProvider, loadCharacters, parseArguments } from './config/index.ts';
+import { getTokenForProvider, loadCharacters } from './config/index.ts';
 import { initializeDatabase } from './database/index.ts';
-import twitterPlugin from './plugin-twitter-alpha/src/index.ts';
+import { recallStoragePlugin } from './plugin-recall-storage/index.ts';
+import twitterAlphaPlugin from './plugin-twitter-alpha/src/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +39,8 @@ export function createAgent(character: Character, db: any, cache: any, token: st
     character,
     plugins: [
       bootstrapPlugin,
-      twitterPlugin,
+      recallStoragePlugin,
+      twitterAlphaPlugin,
       nodePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
     ].filter(Boolean),

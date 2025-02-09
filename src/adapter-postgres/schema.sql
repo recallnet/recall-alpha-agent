@@ -144,6 +144,20 @@ CREATE TABLE IF NOT EXISTS  relationships (
     CONSTRAINT fk_user FOREIGN KEY ("userId") REFERENCES accounts("id") ON DELETE CASCADE
 );
 
+-- Add Twitter following table
+CREATE TABLE IF NOT EXISTS twitter_following (
+    username VARCHAR(255) NOT NULL,
+    following_id VARCHAR(255) NOT NULL,
+    following_username VARCHAR(255) NOT NULL,
+    first_seen TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    bio TEXT,
+    PRIMARY KEY (username, following_id)
+);
+
+-- Add index for common queries
+CREATE INDEX IF NOT EXISTS idx_twitter_following_username 
+    ON twitter_following(username);
+
 CREATE TABLE IF NOT EXISTS  cache (
     "key" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,

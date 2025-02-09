@@ -459,6 +459,28 @@ export class SqliteDatabaseAdapter
     this.db.prepare(sql).run(...logIds);
   }
 
+  async getStoredFollowing(username: string): Promise<string[]> {
+    const sql = 'SELECT following_id FROM twitter_following WHERE username = ?';
+    const rows = this.db.prepare(sql).all(username) as { following_id: string }[];
+    return rows.map((row) => row.following_id);
+  }
+
+  async insertTwitterFollowing(params: {
+    username: string;
+    following_id: string;
+    following_username: string;
+    bio?: string;
+  }): Promise<void> {
+    const sql = `
+      INSERT OR IGNORE INTO twitter_following 
+      (username, following_id, following_username, bio)
+      VALUES (?, ?, ?, ?)
+    `;
+    this.db
+      .prepare(sql)
+      .run(params.username, params.following_id, params.following_username, params.bio || null);
+  }
+
   async getMemories(params: {
     roomId: UUID;
     count?: number;

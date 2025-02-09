@@ -119,6 +119,20 @@ CREATE TABLE IF NOT EXISTS "knowledge" (
     CHECK((isShared = 1 AND agentId IS NULL) OR (isShared = 0 AND agentId IS NOT NULL))
 );
 
+-- Table: twitter_following
+CREATE TABLE IF NOT EXISTS "twitter_following" (
+    "username" TEXT NOT NULL,
+    "following_id" TEXT NOT NULL,
+    "following_username" TEXT NOT NULL,
+    "first_seen" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "bio" TEXT,
+    PRIMARY KEY ("username", "following_id")
+);
+
+-- Index: twitter_following_username_idx
+CREATE INDEX IF NOT EXISTS "twitter_following_username_idx" 
+    ON "twitter_following"("username");
+
 -- Index: relationships_id_key
 CREATE UNIQUE INDEX IF NOT EXISTS "relationships_id_key" ON "relationships" ("id");
 

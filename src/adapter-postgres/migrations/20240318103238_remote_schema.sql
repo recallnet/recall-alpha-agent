@@ -827,4 +827,26 @@ GRANT ALL ON FUNCTION "public"."search_knowledge"("query_embedding" "extensions"
 GRANT ALL ON FUNCTION "public"."search_knowledge"("query_embedding" "extensions"."vector", "query_agent_id" "uuid", "match_threshold" double precision, "match_count" integer, "search_text" text) TO "supabase_admin";
 GRANT ALL ON FUNCTION "public"."search_knowledge"("query_embedding" "extensions"."vector", "query_agent_id" "uuid", "match_threshold" double precision, "match_count" integer, "search_text" text) TO "supabase_auth_admin";
 
+-- Add Twitter following table (add this before RESET ALL;)
+CREATE TABLE IF NOT EXISTS "public"."twitter_following" (
+    "username" VARCHAR(255) NOT NULL,
+    "following_id" VARCHAR(255) NOT NULL,
+    "following_username" VARCHAR(255) NOT NULL,
+    "first_seen" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    "bio" TEXT,
+    PRIMARY KEY ("username", "following_id")
+);
+
+ALTER TABLE "public"."twitter_following" OWNER TO "postgres";
+
+-- Add appropriate grants
+GRANT ALL ON TABLE "public"."twitter_following" TO "authenticated";
+GRANT ALL ON TABLE "public"."twitter_following" TO "service_role";
+GRANT ALL ON TABLE "public"."twitter_following" TO "supabase_admin";
+GRANT ALL ON TABLE "public"."twitter_following" TO "supabase_auth_admin";
+
+-- Add index for performance
+CREATE INDEX IF NOT EXISTS "idx_twitter_following_username" 
+    ON "public"."twitter_following"("username");
+
 RESET ALL;

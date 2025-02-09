@@ -2,13 +2,13 @@ import type { Plugin } from '@elizaos/core';
 import { postAction } from './actions/post.ts';
 import { AlphaService } from '../services/alpha.service.ts';
 
-export const twitterPlugin: Plugin = {
+export const twitterAlphaPlugin: Plugin = {
   name: 'twitter',
   description: 'Twitter integration plugin for posting tweets',
-  actions: [postAction],
+  // actions: [postAction],
   evaluators: [],
   providers: [],
-  // services: [AlphaService.getInstance()],
+  services: [new AlphaService()],
 };
 
-export default twitterPlugin;
+export default twitterAlphaPlugin;
