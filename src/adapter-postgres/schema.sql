@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS twitter_following (
 CREATE INDEX IF NOT EXISTS idx_twitter_following_username 
     ON twitter_following(username);
 
+CREATE INDEX idx_following_id ON twitter_following (following_id);
+
 CREATE TABLE IF NOT EXISTS  cache (
     "key" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,

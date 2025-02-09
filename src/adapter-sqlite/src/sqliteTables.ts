@@ -133,6 +133,8 @@ CREATE TABLE IF NOT EXISTS "twitter_following" (
 CREATE INDEX IF NOT EXISTS "twitter_following_username_idx" 
     ON "twitter_following"("username");
 
+CREATE INDEX IF NOT EXISTS "idx_following_id" ON "twitter_following"("following_id");
+
 -- Index: relationships_id_key
 CREATE UNIQUE INDEX IF NOT EXISTS "relationships_id_key" ON "relationships" ("id");
 

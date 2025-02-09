@@ -849,4 +849,7 @@ GRANT ALL ON TABLE "public"."twitter_following" TO "supabase_auth_admin";
 CREATE INDEX IF NOT EXISTS "idx_twitter_following_username" 
     ON "public"."twitter_following"("username");
 
+CREATE INDEX IF NOT EXISTS "idx_following_id" 
+    ON "public"."twitter_following"("following_id");
+
 RESET ALL;
