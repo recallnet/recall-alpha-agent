@@ -437,44 +437,36 @@ export class AlphaService {
   }
 
   async startMonitoring() {
-    if (this.isMonitoring) return; // ✅ Prevent multiple loops
+    if (this.isMonitoring) return;
     this.isMonitoring = true;
 
     this.logger.info('🚀 Starting Twitter Follow Monitoring...');
     await this.login();
 
-    await Promise.allSettled(this.accounts.map((account) => this.checkForNewFollowing(account)));
-
     const monitor = async () => {
       try {
         let newFollowCount = 0;
 
-        await Promise.allSettled(
-          this.accounts.map(async (account) => {
-            const newFollows = await this.checkForNewFollowing(account);
-            newFollowCount += newFollows.length;
-          }),
-        );
+        // ✅ Sequential execution - process accounts one by one
+        for (const account of this.accounts) {
+          const newFollows = await this.checkForNewFollowing(account);
+          newFollowCount += newFollows.length;
+        }
 
+        // Adjust monitoring speed based on new follow activity
         if (newFollowCount > 5) {
           this.currentInterval = Math.max(this.minInterval, this.currentInterval * 0.8);
-          elizaLogger.info(
-            `⚡ Speeding up monitoring. New interval: ${(this.currentInterval / 60000).toFixed(1)} min.`,
-          );
         } else if (newFollowCount === 0) {
           this.currentInterval = Math.min(this.maxInterval, this.currentInterval * 1.2);
-          elizaLogger.info(
-            `🐢 Slowing down monitoring. New interval: ${(this.currentInterval / 60000).toFixed(1)} min.`,
-          );
         }
       } catch (error) {
         elizaLogger.error(`❌ Monitor loop crashed: ${error.message}`);
       } finally {
-        setTimeout(monitor, this.currentInterval); // ✅ Always restart
+        setTimeout(monitor, this.currentInterval); // ✅ Restart loop
       }
     };
 
-    monitor(); // ✅ Start loop
+    await monitor();
   }
 
   async cleanup() {
