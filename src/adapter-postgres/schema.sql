@@ -90,16 +90,35 @@ CREATE TABLE IF NOT EXISTS  goals (
 CREATE TABLE IF NOT EXISTS logs (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    "userId" UUID NOT NULL REFERENCES accounts("id"),
-    "body" JSONB NOT NULL,
+    "userId" UUID NOT NULL,
+    "agentId" UUID,
+    "roomId" UUID NOT NULL,
     "type" TEXT NOT NULL,
-    "roomId" UUID NOT NULL REFERENCES rooms("id"),
-    "isSynced" BOOLEAN DEFAULT FALSE,
-    CONSTRAINT fk_room FOREIGN KEY ("roomId") REFERENCES rooms("id") ON DELETE CASCADE,
-    CONSTRAINT fk_user FOREIGN KEY ("userId") REFERENCES accounts("id") ON DELETE CASCADE
+    "body" JSONB NOT NULL,
+    "isSynced" BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Foreign key constraints with explicit names for better error messages
+    CONSTRAINT "fk_logs_user" 
+        FOREIGN KEY ("userId") 
+        REFERENCES accounts("id") 
+        ON DELETE CASCADE,
+
+    CONSTRAINT "fk_logs_agent" 
+        FOREIGN KEY ("agentId") 
+        REFERENCES accounts("id") 
+        ON DELETE SET NULL,
+
+    CONSTRAINT "fk_logs_room" 
+        FOREIGN KEY ("roomId") 
+        REFERENCES rooms("id") 
+        ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_logs_unsynced ON logs ("isSynced");
+-- Create an index on isSynced since we query on it
+CREATE INDEX IF NOT EXISTS "idx_logs_synced" ON logs ("isSynced") WHERE NOT "isSynced";
+
+-- Create index on createdAt for timestamp-based queries
+CREATE INDEX IF NOT EXISTS "idx_logs_created" ON logs ("createdAt");
 
 CREATE TABLE IF NOT EXISTS  participants (
     "id" UUID PRIMARY KEY,

@@ -440,15 +440,26 @@ CREATE TABLE IF NOT EXISTS "public"."accounts" (
 ALTER TABLE "public"."accounts" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."logs" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "createdAt" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "userId" "uuid" NOT NULL,
-    "body" "jsonb" NOT NULL,
-    "type" "text" NOT NULL,
-    "roomId" "uuid"
+    "id" UUID DEFAULT gen_random_uuid() NOT NULL,
+    "createdAt" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    "userId" UUID NOT NULL,
+    "agentId" UUID,
+    "roomId" UUID,
+    "type" TEXT NOT NULL,
+    "body" JSONB NOT NULL,
+    "isSynced" BOOLEAN DEFAULT false NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY ("userId") REFERENCES "public"."accounts"("id") ON DELETE CASCADE,
+    CONSTRAINT fk_agent FOREIGN KEY ("agentId") REFERENCES "public"."accounts"("id") ON DELETE SET NULL,
+    CONSTRAINT fk_room FOREIGN KEY ("roomId") REFERENCES "public"."rooms"("id") ON DELETE CASCADE
 );
 
+-- Ensure the "agentId" column exists for schema updates
+ALTER TABLE "public"."logs" ADD COLUMN IF NOT EXISTS "agentId" UUID REFERENCES "public"."accounts"("id") ON DELETE SET NULL;
 ALTER TABLE "public"."logs" OWNER TO "postgres";
+
+-- Add performance indexes without changing existing functionality
+CREATE INDEX IF NOT EXISTS "idx_logs_synced" ON "public"."logs" ("isSynced") WHERE NOT "isSynced";
+CREATE INDEX IF NOT EXISTS "idx_logs_created" ON "public"."logs" ("createdAt" DESC);
 
 CREATE TABLE IF NOT EXISTS "public"."memories" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,

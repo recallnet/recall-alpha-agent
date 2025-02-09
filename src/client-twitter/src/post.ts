@@ -21,7 +21,7 @@ import { buildConversationThread, fetchMediaData } from './utils.ts';
 import { twitterMessageHandlerTemplate } from './interactions.ts';
 import { DEFAULT_MAX_TWEET_LENGTH } from './environment.ts';
 import { Client, Events, GatewayIntentBits, TextChannel, Partials } from 'discord.js';
-import type { Content, State } from '@elizaos/core';
+import type { Content, Memory, State } from '@elizaos/core';
 import type { ActionResponse } from '@elizaos/core';
 import { MediaData } from './types.ts';
 import { ICotAgentRuntime } from '../../types/index.ts';
@@ -66,18 +66,18 @@ Final Answer:
 
 # Example Post
 
-Keep in mind that the following examples are for reference only. Do not use the information from them in your response.
+Keep in mind that the following examples are for reference only. Do not use the information from them in your response. The example aligns with {{agentName}}'s expertise and communication style.
 
 <chain-of-thought>
-1. A given token's Twitter account was created two weeks ago, but its engagement has been growing organically, with interactions from real traders.
-2. The project was recently followed by multiple **notable influencers**, increasing its credibility.
-3. A **new Raydium pool** was established with moderate liquidity—suggesting early traction, but no whale buys yet.
-4. Checked **on-chain data**: No clear evidence of wash trading, and liquidity providers appear to be unique addresses, not dev wallets.
-5. Compared **follower engagement vs. wallet activity**: Real interactions on Twitter + early liquidity accumulation = promising signal.
+1. I reviewed my **bio and lore**, so I know my post should establish my expertise in crypto alpha discovery and intelligence gathering.
+2. One of the **topics I haven’t posted about recently** is **influencer tracking**—a critical edge in identifying early investment opportunities.
+3. My knowledge base includes **how key influencers impact market sentiment** and how **tracking their new follows** can reveal hidden alpha.
+4. My goal is to provide a **concise yet insightful post** that reinforces the importance of this strategy without over-explaining.
+5. Based on my past high-engagement posts, a **short, direct, and tactical insight** will be most effective.
 </chain-of-thought>
 
 Final Answer:
-This token has **early traction with moderate risk**—real Twitter engagement, influencer backing, and non-suspicious liquidity movement. Worth monitoring for further confirmation.
+"If you’re waiting for the tweet, you’re late. The real signal is who they follow. Smart traders track movements before they become narratives
 
 **Keep in mind that the examples are for reference only. If you do not have a specific token or project in mind, you can write a post generally aligned with {{agentName}}'s expertise.**
 
@@ -422,8 +422,7 @@ export class TwitterPostClient {
     await runtime.ensureRoomExists(roomId);
     await runtime.ensureParticipantInRoom(runtime.agentId, roomId);
 
-    // Create a memory for the tweet
-    await runtime.messageManager.createMemory({
+    const memory: Memory = {
       id: stringToUuid(tweet.id + '-' + runtime.agentId),
       userId: runtime.agentId,
       agentId: runtime.agentId,
@@ -433,9 +432,13 @@ export class TwitterPostClient {
         source: 'twitter',
       },
       roomId,
-      embedding: getEmbeddingZeroVector(),
       createdAt: tweet.timestamp,
-    });
+    };
+
+    const embeddedMemory = await this.runtime.messageManager.addEmbeddingToMemory(memory);
+
+    // Create a memory for the tweet
+    await runtime.messageManager.createMemory(embeddedMemory);
   }
 
   async handleNoteTweet(
@@ -583,7 +586,7 @@ export class TwitterPostClient {
           type: 'chain-of-thought',
           body: JSON.stringify({
             log: chainOfThoughtText,
-            userMessage: '',
+            userMessage: 'N/A',
           }),
         });
 
@@ -709,7 +712,7 @@ export class TwitterPostClient {
         type: 'chain-of-thought',
         body: JSON.stringify({
           log: chainOfThoughtText,
-          userMessage: '',
+          userMessage: 'N/A',
         }),
       });
       // save the final answer to the final answer
@@ -1065,7 +1068,7 @@ export class TwitterPostClient {
 
         if (!this.isDryRun) {
           // Then create the memory
-          await this.runtime.messageManager.createMemory({
+          const memory: Memory = {
             id: stringToUuid(tweet.id + '-' + this.runtime.agentId),
             userId: stringToUuid(tweet.userId),
             content: {
@@ -1076,9 +1079,12 @@ export class TwitterPostClient {
             },
             agentId: this.runtime.agentId,
             roomId,
-            embedding: getEmbeddingZeroVector(),
             createdAt: tweet.timestamp * 1000,
-          });
+          };
+
+          const embeddedMemory = await this.runtime.messageManager.addEmbeddingToMemory(memory);
+
+          await this.runtime.messageManager.createMemory(embeddedMemory);
         }
 
         results.push({

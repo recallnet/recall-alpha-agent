@@ -1017,52 +1017,53 @@ export class PostgresDatabaseAdapter
   }
 
   async logMemory(params: {
-    logs: { body: { [key: string]: unknown }; userId: UUID; roomId: UUID; type: string }[];
+    userId: UUID;
+    agentId: UUID;
+    roomId: UUID;
+    type: string;
+    body: string;
   }): Promise<void> {
     return this.withDatabase(async () => {
-      if (params.logs.length === 0) return;
-
-      const values = params.logs
-        .map(
-          (_, i) =>
-            `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5}, FALSE)`,
-        )
-        .join(', ');
-
-      const queryParams = params.logs.flatMap((log) => [
-        v4(), // Generate unique log ID
-        JSON.stringify(log.body),
-        log.userId,
-        log.roomId,
-        log.type,
+      // First ensure the room exists
+      const roomCheck = await this.pool.query('SELECT id FROM rooms WHERE id = $1', [
+        params.roomId,
       ]);
+      if (roomCheck.rows.length === 0) {
+        // If room doesn't exist, create it
+        await this.pool.query('INSERT INTO rooms (id) VALUES ($1)', [params.roomId]);
+      }
 
+      // Now we can safely insert the log
       await this.pool.query(
-        `INSERT INTO logs (id, body, "userId", "roomId", type, "createdAt", "isSynced")
-                 VALUES ${values}`,
-        queryParams,
+        `INSERT INTO logs (id, body, "userId", "agentId", "roomId", type, "isSynced")
+         VALUES ($1, $2, $3, $4, $5, $6, FALSE)`,
+        [v4(), params.body, params.userId, params.agentId, params.roomId, params.type],
       );
     }, 'logMemory');
   }
 
   async getUnsyncedLogs(): Promise<
-    { id: UUID; body: any; userId: UUID; roomId: UUID; type: string; createdAt: Date }[]
+    {
+      id: UUID;
+      body: string;
+      userId: UUID;
+      agentId: UUID | null;
+      roomId: UUID;
+      type: string;
+      createdAt: Date;
+    }[]
   > {
     return this.withDatabase(async () => {
       const { rows } = await this.pool.query(
-        `SELECT id, body, "userId", "roomId", type, "createdAt"
-                 FROM logs WHERE "isSynced" = FALSE
-                 ORDER BY "createdAt" ASC
-                 LIMIT 100`,
+        `SELECT id, body, "userId", "agentId", "roomId", type, "createdAt"
+         FROM logs WHERE "isSynced" = FALSE
+         ORDER BY "createdAt" ASC
+         LIMIT 100`,
       );
 
       return rows.map((row) => ({
-        id: row.id,
-        body: typeof row.body === 'string' ? JSON.parse(row.body) : row.body,
-        userId: row.userId,
-        roomId: row.roomId,
-        type: row.type,
-        createdAt: row.createdAt,
+        ...row,
+        body: typeof row.body === 'string' ? row.body : JSON.stringify(row.body),
       }));
     }, 'getUnsyncedLogs');
   }

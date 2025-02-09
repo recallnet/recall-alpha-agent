@@ -76,18 +76,27 @@ Final Answer:
 
 # Example Response
 
-Keep in mind that the following examples are for reference only. Do not use the information from them in your response.
+Keep in mind that the following examples are for reference only. Do not use the information from them in your response. The example uses a specific imaginary token, but you can write a post generally aligned with {{agentName}}'s expertise.
+
+The following is an example chain-of-thought log and final answer in relation to this imaginary post: 
+
+# Start of example post
+"They knew what they are getting into, they are just gamblers it's OK if they lose money"
+
+Be very cautious of folks with this opinion for they have no moral code, they lack empathy and are quick to judge others
+
+# End of example post
 
 <chain-of-thought>
-1. The token's Twitter account was created two weeks ago, but its engagement has been growing organically, with interactions from real traders.
-2. The project was recently followed by multiple **notable influencers**, increasing its credibility.
-3. A **new Raydium pool** was established with moderate liquidity—suggesting early traction, but no whale buys yet.
-4. Checked **on-chain data**: No clear evidence of wash trading, and liquidity providers appear to be unique addresses, not dev wallets.
-5. Compared **follower engagement vs. wallet activity**: Real interactions on Twitter + early liquidity accumulation = promising signal.
+1. The post suggests a dismissive attitude toward traders losing money, implying that risk-taking absolves responsibility.
+2. This perspective ignores the reality that many traders lack full information and are often misled by bad actors.
+3. Evaluating market sentiment, those who justify financial losses with "they knew what they were getting into" often fail to account for manipulative practices, insider advantages, and asymmetric information.
+4. Ethical trading intelligence includes warning traders about **red flags**, not just analyzing profitable opportunities.
+5. Engaging constructively means addressing **both risk and responsibility**, promoting awareness rather than indifference.
 </chain-of-thought>
 
 Final Answer:
-This token has **early traction with moderate risk**—real Twitter engagement, influencer backing, and non-suspicious liquidity movement. Worth monitoring for further confirmation.
+Markets thrive on informed participants, not blind gamblers. Dismissing losses as "they knew what they were getting into" ignores the role of asymmetric information and market manipulation. A trader’s best edge is knowledge—not apathy to risk
 
 **Keep in mind that the examples are for reference only. If you do not have a specific token or project in mind, you can write a post generally aligned with {{agentName}}'s expertise.**
 
@@ -255,7 +264,7 @@ export class TwitterInteractionClient {
                 const isUnprocessed =
                   !this.client.lastCheckedTweetId ||
                   Number.parseInt(tweet.id) > this.client.lastCheckedTweetId;
-                const isRecent = Date.now() - tweet.timestamp * 1000 < 2 * 60 * 60 * 1000;
+                const isRecent = Date.now() - tweet.timestamp * 1000 < 8 * 60 * 60 * 1000;
 
                 elizaLogger.log(`Tweet ${tweet.id} checks:`, {
                   isUnprocessed,
@@ -578,17 +587,18 @@ export class TwitterInteractionClient {
           if (!shouldSuppressInitialMessage) {
             responseMessages = await callback(parsedContent);
           } else {
-            responseMessages = [
-              {
-                id: stringToUuid(tweet.id + '-' + this.runtime.agentId),
-                userId: this.runtime.agentId,
-                agentId: this.runtime.agentId,
-                content: parsedContent,
-                roomId: message.roomId,
-                embedding: getEmbeddingZeroVector(),
-                createdAt: Date.now(),
-              },
-            ];
+            const memory: Memory = {
+              id: stringToUuid(tweet.id + '-' + this.runtime.agentId),
+              userId: this.runtime.agentId,
+              agentId: this.runtime.agentId,
+              content: parsedContent,
+              roomId: message.roomId,
+              createdAt: Date.now(),
+            };
+
+            const embeddedMemory = await this.runtime.messageManager.addEmbeddingToMemory(memory);
+
+            responseMessages = [embeddedMemory];
           }
 
           state = (await this.runtime.updateRecentMessageState(state)) as State;
@@ -664,7 +674,7 @@ export class TwitterInteractionClient {
           'twitter',
         );
 
-        this.runtime.messageManager.createMemory({
+        const memory: Memory = {
           id: stringToUuid(currentTweet.id + '-' + this.runtime.agentId),
           agentId: this.runtime.agentId,
           content: {
@@ -682,8 +692,11 @@ export class TwitterInteractionClient {
             currentTweet.userId === this.twitterUserId
               ? this.runtime.agentId
               : stringToUuid(currentTweet.userId),
-          embedding: getEmbeddingZeroVector(),
-        });
+        };
+
+        const embeddedMemory = await this.runtime.messageManager.addEmbeddingToMemory(memory);
+
+        this.runtime.messageManager.createMemory(embeddedMemory);
       }
 
       if (visited.has(currentTweet.id)) {
