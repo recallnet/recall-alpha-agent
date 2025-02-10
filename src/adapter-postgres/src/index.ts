@@ -1167,14 +1167,35 @@ export class PostgresDatabaseAdapter
 
   async getUnpostedAlpha(): Promise<any[]> {
     const query = `
-      SELECT * FROM alpha_analysis
+      SELECT 
+        tokenMint AS "tokenMint",
+        username AS "username",
+        bio AS "bio",
+        followersCount AS "followersCount",
+        followingCount AS "followingCount",
+        tweetsCount AS "tweetsCount",
+        accountCreated AS "accountCreated",
+        isMintable AS "isMintable",
+        hasPool AS "hasPool",
+        wsolPoolAge AS "wsolPoolAge",
+        usdcPoolAge AS "usdcPoolAge",
+        wsolPoolTvl AS "wsolPoolTvl",
+        usdcPoolTvl AS "usdcPoolTvl",
+        wsolPoolVolume24h AS "wsolPoolVolume24h",
+        usdcPoolVolume24h AS "usdcPoolVolume24h",
+        wsolPoolPrice AS "wsolPoolPrice",
+        usdcPoolPrice AS "usdcPoolPrice",
+        addedAt AS "addedAt",
+        hasTweeted AS "hasTweeted",
+        tweetedAt AS "tweetedAt"
+      FROM alpha_analysis
       WHERE hasTweeted = FALSE
       ORDER BY accountCreated DESC
       LIMIT 1;
     `;
 
     try {
-      const result = await this.db.query(query);
+      const result = await this.pool.query(query);
       elizaLogger.info(`📊 DEBUG: Retrieved ${result.rows.length} unposted alpha entries.`);
 
       if (result.rows.length > 0) {
@@ -1194,7 +1215,15 @@ export class PostgresDatabaseAdapter
       SET hasTweeted = TRUE, tweetedAt = NOW()
       WHERE tokenMint = $1;
     `;
-    await this.db.query(query, [tokenMint]);
+
+    try {
+      await this.pool.query(query, [tokenMint]); // Use `this.pool.query` instead of `this.db.query`
+      elizaLogger.info(`✅ Marked alpha as tweeted: ${tokenMint}`);
+    } catch (error) {
+      elizaLogger.error(`❌ Failed to mark alpha as tweeted for ${tokenMint}:`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   async insertTwitterFollowing(params: {
