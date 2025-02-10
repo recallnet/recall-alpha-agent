@@ -43,11 +43,15 @@ export class AlphaService {
   private accounts: string[] = accounts;
   private isMonitoring = false; // ✅ Add a flag
   private readonly logger = elizaLogger;
+  private abortController: AbortController | null = null;
   private solanaService: SolanaService;
   private monitoringInterval: NodeJS.Timeout | null = null;
+  private isCleaningUp = false; // ✅ Add flag to prevent multiple cleanups
   private minInterval = 2 * 60 * 1000; // 2 min (fastest)
   private maxInterval = 15 * 60 * 1000; // 15 min (slowest)
   private currentInterval = 5 * 60 * 1000; // Start at 5 min
+  private profileCache: Map<string, { profile: Profile; timestamp: number }> = new Map();
+  private readonly MAX_CACHE_SIZE = 500; // Set a reasonable cap
   private readonly RAYDIUM_API_BASE = 'https://api-v3.raydium.io/pools/info/mint';
   private readonly W_SOL = 'So11111111111111111111111111111111111111112';
   private readonly USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
@@ -61,13 +65,7 @@ export class AlphaService {
     if (!this.profileCacheCleanupInterval) {
       this.profileCacheCleanupInterval = setInterval(
         () => {
-          const now = Date.now();
-          for (const [key, value] of this.profileCache.entries()) {
-            if (now - value.timestamp > 10 * 60 * 1000) {
-              this.profileCache.delete(key);
-              elizaLogger.info(`🧹 Cleared cached profile for @${key}`);
-            }
-          }
+          this.cleanupProfileCache(); // ✅ Invoke it here
         },
         5 * 60 * 1000,
       ); // Cleanup every 5 minutes
@@ -76,7 +74,33 @@ export class AlphaService {
     await this.startMonitoring();
   }
 
-  private profileCache: Map<string, { profile: Profile; timestamp: number }> = new Map();
+  private cleanupProfileCache() {
+    if (!this.isMonitoring) return; // Ensure cleanup only runs if monitoring is active
+
+    const now = Date.now();
+    let removedCount = 0;
+
+    const keysToDelete = Array.from(this.profileCache.keys()).filter(
+      (key) => now - this.profileCache.get(key)!.timestamp > 10 * 60 * 1000,
+    );
+
+    keysToDelete.forEach((key) => {
+      this.profileCache.delete(key);
+      removedCount++;
+    });
+
+    if (removedCount > 0) {
+      elizaLogger.info(`🧹 Cleared ${removedCount} expired profiles from cache.`);
+    }
+
+    if (this.profileCache.size > this.MAX_CACHE_SIZE) {
+      const excess = this.profileCache.size - this.MAX_CACHE_SIZE;
+      const oldestKeys = Array.from(this.profileCache.keys()).slice(0, excess);
+      oldestKeys.forEach((key) => this.profileCache.delete(key));
+
+      elizaLogger.info(`🧹 Profile cache pruned to ${this.MAX_CACHE_SIZE} entries`);
+    }
+  }
 
   async login() {
     const { X_USERNAME, X_PASSWORD, X_EMAIL, TWITTER_2FA_SECRET, TWITTER_RETRY_LIMIT } =
@@ -134,20 +158,24 @@ export class AlphaService {
   async getFollowing(username: string): Promise<TwitterUser[]> {
     try {
       const userId = await this.getUserId(username);
-      if (!userId) {
-        throw new Error(`❌ Unable to fetch user ID for ${username}`);
-      }
+      if (!userId) throw new Error(`❌ Unable to fetch user ID for ${username}`);
 
-      this.logger.info(`🔍 Fetching full following list for ${username} (ID: ${userId})...`);
+      this.logger.info(`🔍 Fetching following list for ${username} (ID: ${userId})...`);
       const followingUsers: TwitterUser[] = [];
 
-      for await (const profile of this.scraper.getFollowing(userId, 100000)) {
+      let count = 0;
+      for await (const profile of this.scraper.getFollowing(userId, 5000)) {
+        // ✅ Capped at 5,000
+        if (++count > 5000) break; // ✅ Stop if exceeded
         followingUsers.push({
           id: profile.userId,
           username: profile.username,
           name: profile.name,
           bio: profile.biography || '',
         });
+
+        // ✅ Rate-limit API calls (100ms delay between each)
+        if (count % 100 === 0) await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       this.logger.info(`✅ Retrieved ${followingUsers.length} following users for ${username}.`);
@@ -171,14 +199,18 @@ export class AlphaService {
 
       const newFollows = latestFollowing.filter((f) => !storedFollowingSet.has(f.id));
 
-      for (const newFollow of newFollows) {
-        await this.db.insertTwitterFollowing({
-          username,
-          following_id: newFollow.id,
-          following_username: newFollow.username,
-          bio: newFollow.bio,
-        });
+      if (newFollows.length > 0) {
+        await this.db.bulkInsertTwitterFollowing(
+          newFollows.map((follow) => ({
+            username,
+            following_id: follow.id,
+            following_username: follow.username,
+            bio: follow.bio,
+          })),
+        );
+      }
 
+      for (const newFollow of newFollows) {
         this.logger.info(
           `🚀 ${username} just followed ${newFollow.username} (${newFollow.id}) - Bio: ${newFollow.bio}`,
         );
@@ -254,26 +286,31 @@ export class AlphaService {
     }
   }
 
-  async fetchWithRetries(url: string, maxRetries = 5): Promise<Response | null> {
+  async fetchWithRetries(url: string, maxRetries = 3): Promise<Response | null> {
     let attempt = 0;
-    let delay = 500; // Start with 500ms delay
+    let delay = 1000; // Start with 1s delay
 
     while (attempt < maxRetries) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      if (!this.isMonitoring) return null; // ✅ Stop retries if monitoring is off
+
+      // ✅ Create a new AbortController **for each attempt**
+      const abortController = new AbortController();
+      const timeout = setTimeout(() => abortController.abort(), 10000); // 10s timeout
 
       try {
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, { signal: abortController.signal });
 
-        return response.ok ? response : null; // ✅ Return immediately if successful
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          elizaLogger.warn(`⚠ Request timeout: Retrying in ${delay / 1000} seconds...`);
-        } else {
-          elizaLogger.error(`❌ Network error on attempt ${attempt + 1}: ${error.message}`);
+        if (response.ok) return response; // ✅ Success
+        if (response.status === 404) {
+          elizaLogger.error(`❌ Fatal error: 404 Not Found (${url})`);
+          return null; // ✅ Stop retrying if it's a 404
         }
+
+        elizaLogger.warn(`⚠ Failed response (attempt ${attempt + 1}/${maxRetries}), retrying...`);
+      } catch (error) {
+        elizaLogger.error(`❌ Network error (${attempt + 1}/${maxRetries}): ${error.message}`);
       } finally {
-        clearTimeout(timeout); // ✅ Always clear timeout
+        clearTimeout(timeout);
       }
 
       attempt++;
@@ -281,7 +318,7 @@ export class AlphaService {
       delay *= 2; // Exponential backoff
     }
 
-    elizaLogger.error(`❌ Max retries exceeded for URL: ${url}`);
+    elizaLogger.error(`❌ Max retries exceeded: ${url}`);
     return null;
   }
 
@@ -444,38 +481,53 @@ export class AlphaService {
     await this.login();
 
     const monitor = async () => {
+      if (!this.isMonitoring) return; // ✅ Exit if monitoring is stopped
+
       try {
         let newFollowCount = 0;
-
-        // ✅ Sequential execution - process accounts one by one
         for (const account of this.accounts) {
+          if (!this.isMonitoring) return;
           const newFollows = await this.checkForNewFollowing(account);
           newFollowCount += newFollows.length;
         }
 
-        // Adjust monitoring speed based on new follow activity
+        if (!this.isMonitoring) return;
+
+        // 🔄 Dynamically adjust polling interval
         if (newFollowCount > 5) {
           this.currentInterval = Math.max(this.minInterval, this.currentInterval * 0.8);
         } else if (newFollowCount === 0) {
           this.currentInterval = Math.min(this.maxInterval, this.currentInterval * 1.2);
         }
+
+        this.logger.info(`⏳ Next scan in ${this.currentInterval / 1000}s...`);
+
+        // ✅ Use setTimeout for controlled execution
+        setTimeout(() => {
+          if (this.isMonitoring) monitor();
+        }, this.currentInterval);
       } catch (error) {
         elizaLogger.error(`❌ Monitor loop crashed: ${error.message}`);
-      } finally {
-        setTimeout(monitor, this.currentInterval); // ✅ Restart loop
       }
     };
 
-    await monitor();
+    // ✅ Start the first execution
+    monitor();
   }
 
   async cleanup() {
-    this.logger.info('🛑 Cleaning up Twitter monitoring service...');
+    if (this.isCleaningUp) return;
+    this.isCleaningUp = true;
 
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-      this.monitoringInterval = null;
+    this.logger.info('🛑 Cleaning up Twitter monitoring service...');
+    this.isMonitoring = false;
+
+    if (this.abortController) {
+      this.abortController.abort(); // ✅ Cancel any ongoing API requests
+      this.abortController = null;
     }
+
+    this.cleanupProfileCache(); // ✅ Ensure cache is cleaned
 
     if (this.profileCacheCleanupInterval) {
       clearInterval(this.profileCacheCleanupInterval);
@@ -483,6 +535,6 @@ export class AlphaService {
       elizaLogger.info('🧹 Stopped profile cache cleanup.');
     }
 
-    this.isMonitoring = false; // ✅ Allow future restart
+    elizaLogger.info('✅ Cleanup completed.');
   }
 }

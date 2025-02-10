@@ -481,6 +481,36 @@ export class SqliteDatabaseAdapter
       .run(params.username, params.following_id, params.following_username, params.bio || null);
   }
 
+  async bulkInsertTwitterFollowing(
+    followings: {
+      username: string;
+      following_id: string;
+      following_username: string;
+      bio?: string;
+    }[],
+  ): Promise<void> {
+    if (followings.length === 0) return;
+
+    const sql = `
+      INSERT OR IGNORE INTO twitter_following (username, following_id, following_username, bio)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    const stmt = this.db.prepare(sql);
+    const transaction = this.db.transaction(() => {
+      for (const follow of followings) {
+        stmt.run(
+          follow.username,
+          follow.following_id,
+          follow.following_username,
+          follow.bio || null,
+        );
+      }
+    });
+
+    transaction();
+  }
+
   async getMemories(params: {
     roomId: UUID;
     count?: number;

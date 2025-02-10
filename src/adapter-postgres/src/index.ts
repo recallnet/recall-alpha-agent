@@ -1042,6 +1042,44 @@ export class PostgresDatabaseAdapter
     }, 'logMemory');
   }
 
+  async bulkInsertTwitterFollowing(
+    followings: {
+      username: string;
+      following_id: string;
+      following_username: string;
+      bio?: string;
+    }[],
+  ): Promise<void> {
+    if (followings.length === 0) return;
+
+    const values: any[] = [];
+    const placeholders = followings
+      .map(
+        (_, index) =>
+          `($${index * 4 + 1}, $${index * 4 + 2}, $${index * 4 + 3}, $${index * 4 + 4})`,
+      )
+      .join(', ');
+
+    for (const follow of followings) {
+      values.push(
+        follow.username,
+        follow.following_id,
+        follow.following_username,
+        follow.bio || null,
+      );
+    }
+
+    const sql = `
+      INSERT INTO twitter_following (username, following_id, following_username, bio)
+      VALUES ${placeholders}
+      ON CONFLICT (username, following_id) DO NOTHING
+    `;
+
+    await this.withDatabase(async () => {
+      await this.pool.query(sql, values);
+    }, 'bulkInsertTwitterFollowing');
+  }
+
   async getStoredFollowing(username: string): Promise<string[]> {
     return this.withDatabase(async () => {
       const { rows } = await this.pool.query(

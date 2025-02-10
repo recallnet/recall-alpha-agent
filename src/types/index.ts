@@ -83,6 +83,16 @@ export interface ICotDatabaseAdapter {
     bio?: string;
   }): Promise<void>;
 
+  /** Bulk insert multiple Twitter following records */
+  bulkInsertTwitterFollowing(
+    follows: {
+      username: string;
+      following_id: string;
+      following_username: string;
+      bio?: string;
+    }[],
+  ): Promise<void>;
+
   /** Retrieve unsynced logs */
   getUnsyncedLogs(): Promise<
     {
