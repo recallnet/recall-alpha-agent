@@ -9,7 +9,7 @@ import {
 } from '../../../../js-recall/packages/sdk/dist/index.js'; // to replace with import from recall-sdk
 import { elizaLogger, UUID, Service, ServiceType } from '@elizaos/core';
 import { parseEther } from 'viem';
-import { ICotAgentRuntime } from '../../types/index.ts';
+import { ICotAgentRuntime, ICotDatabaseAdapter } from '../../types/index.ts';
 
 type Address = `0x${string}`;
 type AccountInfo = {
@@ -26,7 +26,7 @@ const envPrefix = process.env.COT_LOG_PREFIX as string;
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
   private client: RecallClient;
-  private runtime: ICotAgentRuntime;
+  private db: ICotDatabaseAdapter; // Changed from runtime to db
   private syncInterval: NodeJS.Timeout | undefined;
   private alias: string;
   private prefix: string;
@@ -50,7 +50,29 @@ export class RecallService extends Service {
       this.client = new RecallClient({ walletClient: wallet });
       this.alias = envAlias;
       this.prefix = envPrefix;
-      this.runtime = _runtime;
+      this.db = _runtime.databaseAdapter;
+      elizaLogger.success('RecallService initialized successfully.');
+    } catch (error) {
+      elizaLogger.error(`Error initializing RecallService: ${error.message}`);
+    }
+  }
+
+  async initializeMonitoring(_db: ICotDatabaseAdapter): Promise<void> {
+    try {
+      if (!process.env.RECALL_PRIVATE_KEY) {
+        throw new Error('RECALL_PRIVATE_KEY is required');
+      }
+      if (!process.env.RECALL_BUCKET_ALIAS) {
+        throw new Error('RECALL_BUCKET_ALIAS is required');
+      }
+      if (!process.env.COT_LOG_PREFIX) {
+        throw new Error('COT_LOG_PREFIX is required');
+      }
+      const wallet = walletClientFromPrivateKey(privateKey, testnet);
+      this.client = new RecallClient({ walletClient: wallet });
+      this.alias = envAlias;
+      this.prefix = envPrefix;
+      this.db = _db;
       await this.startPeriodicSync();
       elizaLogger.success('RecallService initialized successfully, starting periodic sync.');
     } catch (error) {
@@ -283,7 +305,7 @@ export class RecallService extends Service {
         'Get/Create bucket',
       );
 
-      const unsyncedLogs = await this.runtime.databaseAdapter.getUnsyncedLogs();
+      const unsyncedLogs = await this.db.getUnsyncedLogs();
       const filteredLogs = unsyncedLogs.filter((log) => log.type === 'chain-of-thought');
 
       if (filteredLogs.length === 0) {
@@ -319,7 +341,7 @@ export class RecallService extends Service {
             const logFileKey = await this.storeBatchToRecall(bucketAddress, batch);
 
             if (logFileKey) {
-              await this.runtime.databaseAdapter.markLogsAsSynced(syncedLogIds);
+              await this.db.markLogsAsSynced(syncedLogIds);
               elizaLogger.info(`Successfully synced batch of ${syncedLogIds.length} logs`);
             } else {
               failedLogIds.push(...syncedLogIds);

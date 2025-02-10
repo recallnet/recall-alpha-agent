@@ -24,6 +24,10 @@ The **Recall Alpha Agent** is an advanced AI-driven system that combines **crypt
 
 The **Alpha Service** runs as an **Express server** in a continuous loop, monitoring specific Twitter accounts for potential trading signals.
 
+## 🛠 Recall Service Workflow
+
+The **Recall Service** runs as an **Express server** in a continuous loop, periodically performing batch syncing jobs, transferring chain-of-thought logs from the local database to Recall.
+
 ### **🔄 Flow of Operations**
 
 1. The **agent scrapes** selected Twitter profiles for **new follows**.
