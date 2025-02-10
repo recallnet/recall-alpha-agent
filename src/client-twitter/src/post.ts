@@ -522,6 +522,7 @@ export class TwitterPostClient {
    */
   async generateNewTweet() {
     elizaLogger.log('Generating new tweet');
+    elizaLogger.info('🔍 Checking for new alpha analysis data...');
 
     try {
       const roomId = stringToUuid('twitter_generate_room-' + this.client.profile.username);
@@ -534,13 +535,53 @@ export class TwitterPostClient {
 
       const topics = this.runtime.character.topics.join(', ');
       const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
+      let additionalContext: string | null = null;
+      let alphaEntry = null;
+      // 🔥 Fetch an unposted alpha analysis entry
+      let newAlphaEntries;
+      try {
+        newAlphaEntries = await this.runtime.databaseAdapter.getUnpostedAlpha();
+        elizaLogger.info(`📊 Retrieved ${newAlphaEntries.length} unposted alpha entries.`);
+      } catch (error) {
+        elizaLogger.error('❌ Failed to fetch unposted alpha entries:', error);
+      }
+      if (newAlphaEntries && newAlphaEntries.length > 0) {
+        alphaEntry = newAlphaEntries[0]; // Select the first available entry
+
+        elizaLogger.info(`🚀 Found new alpha opportunity for ${alphaEntry.tokenMint}`);
+
+        // 🔹 Construct instructions for the agent
+        additionalContext = `
+        # Crypto Alpha Discovery
+        A new potential trading opportunity has been detected. Use the information below to craft an engaging post highlighting the alpha signal. Keep in mind that not all opportunities are created equal, so use the data to guide your post. For context, each token has a unique token mint address, and a corresponding Twitter account. It's important to consider how many people are following a token's Twitter account, as this can indicate the level of interest and potential for price movement, in addition to how new the account is, and whether there's an active pool, and the other data available.
+
+        🔹 **Token Mint:** ${alphaEntry.tokenMint}
+        🔹 **Token's Twitter username:** @${alphaEntry.username}
+        🔹 **Follower Count:** ${alphaEntry.followersCount.toLocaleString()}
+        🔹 **Pool Status:** ${alphaEntry.hasPool ? '✅ Active' : '❌ Not Yet'}
+        🔹 **Mintable:** ${alphaEntry.isMintable ? '✅' : '❌'}
+        🔹 **WSOL Pool TVL:** ${alphaEntry.wsolPoolTvl ? `$${alphaEntry.wsolPoolTvl.toLocaleString()}` : 'N/A'}
+        🔹 **USDC Pool TVL:** ${alphaEntry.usdcPoolTvl ? `$${alphaEntry.usdcPoolTvl.toLocaleString()}` : 'N/A'}
+        🔹 **Twitter Account Created On:** ${alphaEntry.accountCreated ? new Date(alphaEntry.accountCreated).toLocaleDateString() : 'Unknown'}
+
+        **INSTRUCTIONS:** 
+        - Use this data to generate a tweet that provides **valuable insights** to traders.
+        - Frame it as an **early signal** rather than an investment recommendation.
+        - Keep the tweet under **${maxTweetLength} characters**.
+        - Use engaging phrasing that appeals to crypto traders.
+        - Avoid generic statements—tie the insight to the actual alpha data.
+        `;
+      } else {
+        elizaLogger.info('⚠ No new alpha opportunities found. Generating a general tweet.');
+      }
+
       const state = await this.runtime.composeState(
         {
           userId: this.runtime.agentId,
           roomId: roomId,
           agentId: this.runtime.agentId,
           content: {
-            text: topics || '',
+            text: additionalContext ?? topics ?? '',
             action: 'TWEET',
           },
         },
@@ -559,12 +600,10 @@ export class TwitterPostClient {
 
       const response = await generateText({
         runtime: this.runtime,
-        context,
+        context: additionalContext !== null ? context + additionalContext : context,
         modelClass: ModelClass.SMALL,
       });
-      elizaLogger.info(
-        'generate tweet content response 559:\n' + JSON.stringify(response, null, 2),
-      );
+      elizaLogger.info('generate tweet content:\n' + JSON.stringify(response, null, 2));
 
       const alteredResponse = response;
 
@@ -641,7 +680,7 @@ export class TwitterPostClient {
         elizaLogger.info(`Dry run: would have posted tweet: ${tweetTextForPosting}`);
         return;
       }
-
+      let tweetPostedSuccessfully = false;
       try {
         if (this.approvalRequired) {
           // Send for approval instead of posting directly
@@ -650,7 +689,7 @@ export class TwitterPostClient {
           elizaLogger.log('Tweet sent for approval');
         } else {
           elizaLogger.log(`Posting new tweet:\n ${tweetTextForPosting}`);
-          this.postTweet(
+          await this.postTweet(
             this.runtime,
             this.client,
             tweetTextForPosting,
@@ -659,9 +698,19 @@ export class TwitterPostClient {
             this.twitterUsername,
             mediaData,
           );
+          tweetPostedSuccessfully = true;
         }
       } catch (error) {
         elizaLogger.error('Error sending tweet:', error);
+      }
+      // ✅ If an alpha entry was used, mark it as tweeted
+      if (alphaEntry && tweetPostedSuccessfully) {
+        try {
+          await this.runtime.databaseAdapter.markAlphaAsTweeted(alphaEntry.tokenMint);
+          elizaLogger.info(`✅ Marked ${alphaEntry.tokenMint} as tweeted.`);
+        } catch (error) {
+          elizaLogger.error(`❌ Failed to mark ${alphaEntry.tokenMint} as tweeted:`, error);
+        }
       }
     } catch (error) {
       elizaLogger.error('Error generating new tweet:', error);

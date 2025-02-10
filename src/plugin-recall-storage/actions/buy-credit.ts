@@ -39,7 +39,6 @@ export const buyCreditAction: Action = {
 
     const amount = parseFloat(amountMatch[1]);
     if (isNaN(amount) || amount <= 0) {
-      elizaLogger.error('BUY_CREDIT failed: Invalid amount.');
       return false;
     }
 
