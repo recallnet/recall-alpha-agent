@@ -1,129 +1,150 @@
-# Eliza Discord Agent
+# Recall Alpha Agent
 
-## Edit the character files
+*Forget the noise. The real action happens before the hype.*
 
-Open `src/character.ts` to modify the default character. Uncomment and edit.
+## 🚀 Overview
 
-### Character
+The **Recall Alpha Agent** is an advanced AI-driven system that combines **crypto trading intelligence** with **persistent memory storage**. It operates in two primary capacities:
 
-Edit the character file found in ./characters/recall.character.json. If you rename this file, you will need to update the hard-coded file path found on line 137 in [this file](src/index.ts).
+1. **Alpha-Gathering Twitter Agent**:
+   - Monitors selected **Twitter profiles** for new follows.
+   - Extracts potential **token mints** from new follows' bios.
+   - Queries **Raydium API** for token liquidity pool data.
+   - Stores collected data in **PostgreSQL/SQLite databases**.
+   - Detects early **memecoin** opportunities and generates **alpha tweets**.
 
-## Duplicate the .env.example template
+2. **Recall Plugin for AI Memory**:
+   - Integrates with **Recall storage** to persist chain-of-thought (CoT) logs.
+   - Syncs reasoning history to **Recall buckets**.
+   - Fetches **historical thought logs** to enhance inference.
+   - Manages persistent memory through **Recall API**.
 
-```bash
-cp .env.example .env
+## 🛠 Alpha Service Workflow
+
+The **Alpha Service** runs as an **Express server** in a continuous loop, monitoring specific Twitter accounts for potential trading signals.
+
+### **🔄 Flow of Operations**
+
+1. The **agent scrapes** selected Twitter profiles for **new follows**.
+2. It checks the **bio** of new follows for **token mints**.
+3. If a mint is found, it **queries Raydium API** for liquidity pool data.
+4. The collected **alpha data** is logged into the `alpha_analysis` table.
+5. A **separate Twitter agent** queries `alpha_analysis` and **tweets** about new opportunities.
+6. The system continuously refines **scanning intervals** based on activity levels.
+
+### **🛠 Key Components**
+
+| **Component**   | **Function** |
+|---------------|-------------|
+| **Twitter Scraper** | Extracts new follows from selected accounts. |
+| **Raydium API** | Fetches liquidity and pool data for detected tokens. |
+| **Database Logging** | Stores alpha signals in a structured database. |
+| **Automated Tweeting** | Posts insightful tweets based on analysis. |
+| **Recall Integration** | Stores chain-of-thought logs for AI reasoning. |
+
+## 🔥 **Modified Twitter Client**
+
+The **Twitter posting client** has been updated to:
+
+- Periodically **check the `alpha_analysis` table**.
+- Detect **new token opportunities**.
+- Generate **engaging tweets** based on collected data.
+- Maintain **a structured posting schedule**.
+
+## 🔥 **Modified Database Adapters**
+
+The **SqliteDatabaseAdapter** and **PostgresDatabaseAdapter** have been updated to accommodate Alpha Agent's needs, including:
+
+- Modified `logs` table and corresponding queries to keep track of synced logs to Recall
+- New `twitter_following` and related queries to keep track of profiles the users Alpha Agent is observing are following, and which ones are new
+- New `alpha_analysis` table to track collected Alpha for our agent to reference when creating Twitter posts
+
+## 📌 Recall Plugin Functionality
+
+This agent also provides **Recall storage** as a plugin for Eliza AI agents, allowing them to:
+
+- ✅ Store and retrieve **chain-of-thought logs**.
+- ✅ Persist agent context across sessions.
+- ✅ Sync long-term memory with **Recall buckets**.
+- ✅ Purchase additional storage credits.
+
+### **🔄 Recall Storage Flow**
+
+1. **Agent generates reasoning logs** and writes them locally.
+2. **Logs are periodically uploaded** to Recall storage.
+3. **Before inference**, past logs are retrieved for context.
+4. The agent uses **historical thought chains** to improve decision-making.
+
+## 📌 **Key Features & Actions**
+
+| **Action**        | **Trigger Format**                                                                                 | **Description**                                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Create Bucket** | `"Create a bucket named 'logs'"`                                                                  | Creates or retrieves a Recall bucket.                                                                        |
+| **List Buckets**  | `"Show my Recall buckets"`                                                                        | Fetches available storage buckets.                                                                           |
+| **Store Object**  | `"Add object 'file.txt' to bucket 'backup'"`                                                      | Saves an object (file, data) in a bucket.                                                                    |
+| **Retrieve Data** | `"Get object 'data.json' from bucket 'logs'"`                                                     | Downloads stored objects from Recall.                                                                        |
+| **Buy Credits**   | `"Buy 2 Recall credits"`                                                                          | Purchases more Recall storage credits.                                                                       |
+
+## 📌 **Environment Variables (`.env`)**
+
+Configure these settings to enable full functionality:
+
+```dotenv
+# Required APIs and Credentials
+OPENAI_API_KEY=your-api-key
+SOL_PRIVATE_KEY=your-solana-key
+
+# Twitter Bot Credentials
+TWITTER_USERNAME=your-twitter-username
+TWITTER_PASSWORD=your-twitter-password
+TWITTER_EMAIL=your-twitter-email
+
+# Recall Storage
+RECALL_PRIVATE_KEY=your-recall-key
+RECALL_BUCKET_ALIAS=your-default-bucket
+COT_LOG_PREFIX=cot/
+
+# Database Configuration (Postgres/SQLite)
+POSTGRES_URL=your-postgres-url
+
+# Twitter Monitoring Targets
+TWITTER_ACCOUNTS=comma-separated-list
+
+# Posting Schedule
+TWITTER_DRY_RUN=false
+POST_INTERVAL_MIN=10
+POST_INTERVAL_MAX=30
+
+# AI Configuration
+USE_OPENAI_EMBEDDING=TRUE
+SERVER_PORT=3000
+DAEMON_PROCESS=false
+TWITTER_TARGET_USERS=
 ```
 
-\* Fill out the .env file with your own values.
+## 🚀 **Running the Services**
 
-### Add login credentials and keys to .env
-
-```
-DISCORD_APPLICATION_ID="discord-application-id"
-DISCORD_API_TOKEN="discord-api-token"
-DISCORD_CHANNEL_ID="your-channel-id"
-DISCORD_GUILD_ID="your-server-id"
-OPENAI_API_KEY="your-key"
-POSTGRES_URL="your-pg-url"
-```
-
-This agent is currently constrained to only engage in the channel defined in your .env file. You can alter this behavior from the [messaging module](src/plugin-discord/src/messages.ts) on line 109.
-
-### Knowledge Base
-
-This Discord agent uses a `knowledge base` (specialized knowledge set in vector embedding format) to inject additional context into its responses based on similarity search. Once you've set up your PostgreSQL connection, connect to your database and perform the following:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE code_embeddings (
-    id SERIAL PRIMARY KEY,
-    file_path TEXT,
-    content  TEXT,
-    embedding VECTOR(1536)
-);
-```
-
-To pre-load this knowledge base with specialized knowledge (for example, using documentation), you can run a script like the following in a separate file to recursively vectorize file contents within your ./documents directory:
-
-```typescript
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { TextLoader } from 'langchain/document_loaders/fs/text';
-import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
-import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  connectionString: 'your-connection-url',
-});
-// Configure unified loader for all file types
-const loader = new DirectoryLoader('./documents', {
-  '.txt': (path) => new TextLoader(path),
-  '.md': (path) => new TextLoader(path),
-  '.pdf': (path) => new PDFLoader(path),
-  '.tsx': (path) => new TextLoader(path),
-  '.rs': (path) => new TextLoader(path),
-});
-
-const docs = await loader.load();
-const embeddings = new OpenAIEmbeddings();
-
-const textSplitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 1000,
-  chunkOverlap: 200,
-  separators: ['\n\n', '\n', ' ', ''],
-});
-
-for (const doc of docs) {
-  console.log(`Processing document: ${doc.metadata.source}`);
-  const txtPath = doc.metadata.source;
-  const text = doc.pageContent;
-
-  const chunks = await textSplitter.createDocuments([text]);
-  console.log(`Text split into ${chunks.length} chunks`);
-
-  const embeddingsArrays = await embeddings.embedDocuments(
-    chunks.map((chunk) => chunk.pageContent.replace(/\n/g, ' ')),
-  );
-
-  for (let idx = 0; idx < chunks.length; idx++) {
-    const chunk = chunks[idx];
-    const vector = {
-      id: `${txtPath}_${idx}`,
-      values: embeddingsArrays[idx],
-      metadata: {
-        ...chunk.metadata,
-        loc: JSON.stringify(chunk.metadata.loc),
-        pageContent: chunk.pageContent,
-        txtPath: txtPath,
-      },
-    };
-
-    const res = await pool.query(
-      'INSERT INTO code_embeddings (content, file_path, embedding) VALUES ($1, $2, $3::vector)',
-      [
-        chunk.pageContent,
-        txtPath,
-        `[${vector.values.join(',')}]`, // Format as array string
-      ],
-    );
-    console.log(res.rows[0], 'inserted from ', txtPath, ':', chunk.pageContent.slice);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    // Add your Postgres insertion logic here
-  }
-  console.log(`Postgres index updated with ${chunks.length} vectors`);
-}
-```
-
-## Install dependencies and start your agent
-
+### **1️⃣ Setup & Install**
 ```bash
 pnpm i && pnpm start
 ```
 
-Note: this requires node to be at least version 22 when you install packages and run the agent.
-
+### **2️⃣ Start the Alpha Monitoring Service**
+```bash
+pnpm run start:twitter
 ```
 
+### **3️⃣ Run Both Services**
+```bash
+pnpm run start:all
 ```
+
+## 🏆 **Why Use This Agent?**
+
+- **🚀 Early Crypto Alpha** – Detect promising tokens **before they trend**.
+- **🤖 Smart Tweeting** – Automatically **analyze & tweet insights**.
+- **🧠 Persistent AI Memory** – Integrates **Recall storage** for long-term reasoning.
+- **💡 Automated Data Processing** – Fully **autonomous trading intelligence**.
+
+This agent ensures **you stay ahead of the market** by combining **Twitter intelligence, liquidity monitoring, and AI-powered insights** into a single automated workflow. 🎯
+

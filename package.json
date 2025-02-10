@@ -1,5 +1,5 @@
 {
-  "name": "@elizaos/eliza-starter",
+  "name": "recall-alpha-agent",
   "version": "0.1.1",
   "main": "src/index.ts",
   "type": "module",
