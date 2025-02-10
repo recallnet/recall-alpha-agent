@@ -418,6 +418,52 @@ export class AlphaService {
     return match ? match[0] : null;
   }
 
+  async storeAlphaAnalysis(params: {
+    tokenMint: string;
+    username: string;
+    bio?: string;
+    followersCount: number;
+    followingCount: number;
+    tweetsCount: number;
+    accountCreated?: Date;
+    isMintable: boolean;
+    hasPool: boolean;
+    wsolPoolAge?: number;
+    usdcPoolAge?: number;
+    wsolPoolTvl?: number;
+    usdcPoolTvl?: number;
+    wsolPoolVolume24h?: number;
+    usdcPoolVolume24h?: number;
+    wsolPoolPrice?: number;
+    usdcPoolPrice?: number;
+  }) {
+    try {
+      await this.db.insertAlphaAnalysis({
+        tokenMint: params.tokenMint,
+        username: params.username,
+        bio: params.bio,
+        followersCount: params.followersCount,
+        followingCount: params.followingCount,
+        tweetsCount: params.tweetsCount,
+        accountCreated: params.accountCreated,
+        isMintable: params.isMintable,
+        hasPool: params.hasPool,
+        wsolPoolAge: params.wsolPoolAge,
+        usdcPoolAge: params.usdcPoolAge,
+        wsolPoolTvl: params.wsolPoolTvl,
+        usdcPoolTvl: params.usdcPoolTvl,
+        wsolPoolVolume24h: params.wsolPoolVolume24h,
+        usdcPoolVolume24h: params.usdcPoolVolume24h,
+        wsolPoolPrice: params.wsolPoolPrice,
+        usdcPoolPrice: params.usdcPoolPrice,
+      });
+
+      this.logger.info(`✅ Alpha analysis stored for token: ${params.tokenMint}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to store alpha analysis for token: ${params.tokenMint}`, error);
+    }
+  }
+
   async evaluatePotentialAlpha(newFollow: TwitterUser) {
     if (!newFollow.bio) return;
 
@@ -471,6 +517,25 @@ export class AlphaService {
       - USDC Pool: ${raydiumData.poolData.usdcPool ? `✅ (${raydiumData.poolData.usdcPoolAge.toFixed(2)} days old)` : '❌'}`
         : ''
     }`);
+    await this.storeAlphaAnalysis({
+      tokenMint,
+      username: newFollow.username,
+      bio: profile?.biography || '',
+      followersCount: profile?.followersCount || 0,
+      followingCount: profile?.followingCount || 0,
+      tweetsCount: profile?.tweetsCount || 0,
+      accountCreated: profile?.joined ? new Date(profile.joined) : undefined,
+      isMintable: raydiumData.isMintable,
+      hasPool: raydiumData.hasPool,
+      wsolPoolAge: raydiumData.poolData?.wsolPoolAge,
+      usdcPoolAge: raydiumData.poolData?.usdcPoolAge,
+      wsolPoolTvl: raydiumData.poolData?.wsolPool?.tvl,
+      usdcPoolTvl: raydiumData.poolData?.usdcPool?.tvl,
+      wsolPoolVolume24h: raydiumData.poolData?.wsolPool?.day?.volume,
+      usdcPoolVolume24h: raydiumData.poolData?.usdcPool?.day?.volume,
+      wsolPoolPrice: raydiumData.poolData?.wsolPool?.price,
+      usdcPoolPrice: raydiumData.poolData?.usdcPool?.price,
+    });
   }
 
   async startMonitoring() {

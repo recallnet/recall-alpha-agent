@@ -119,6 +119,35 @@ CREATE TABLE IF NOT EXISTS "knowledge" (
     CHECK((isShared = 1 AND agentId IS NULL) OR (isShared = 0 AND agentId IS NOT NULL))
 );
 
+-- Table: alpha_analysis
+CREATE TABLE IF NOT EXISTS alpha_analysis (
+    tokenMint TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    bio TEXT,
+    followersCount INTEGER NOT NULL,
+    followingCount INTEGER NOT NULL,
+    tweetsCount INTEGER NOT NULL,
+    accountCreated DATETIME,
+    isMintable INTEGER NOT NULL CHECK(isMintable IN (0,1)),
+    hasPool INTEGER NOT NULL CHECK(hasPool IN (0,1)),
+    wsolPoolAge REAL,
+    usdcPoolAge REAL,
+    wsolPoolTvl REAL,
+    usdcPoolTvl REAL,
+    wsolPoolVolume24h REAL,
+    usdcPoolVolume24h REAL,
+    wsolPoolPrice REAL,
+    usdcPoolPrice REAL,
+    addedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    hasTweeted INTEGER NOT NULL CHECK(hasTweeted IN (0,1)) DEFAULT 0,
+    tweetedAt DATETIME DEFAULT NULL
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_alpha_analysis_username ON alpha_analysis(username);
+CREATE INDEX IF NOT EXISTS idx_alpha_analysis_addedAt ON alpha_analysis(addedAt);
+
+
 -- Table: twitter_following
 CREATE TABLE IF NOT EXISTS "twitter_following" (
     "username" TEXT NOT NULL,

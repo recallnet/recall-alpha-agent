@@ -511,6 +511,93 @@ export class SqliteDatabaseAdapter
     transaction();
   }
 
+  async insertAlphaAnalysis(params: {
+    tokenMint: string;
+    username: string;
+    bio?: string;
+    followersCount: number;
+    followingCount: number;
+    tweetsCount: number;
+    accountCreated?: number;
+    isMintable: boolean;
+    hasPool: boolean;
+    wsolPoolAge?: number;
+    usdcPoolAge?: number;
+    wsolPoolTvl?: number;
+    usdcPoolTvl?: number;
+    wsolPoolVolume24h?: number;
+    usdcPoolVolume24h?: number;
+    wsolPoolPrice?: number;
+    usdcPoolPrice?: number;
+    addedAt?: number;
+  }): Promise<void> {
+    const sql = `
+      INSERT OR REPLACE INTO alpha_analysis (
+        tokenMint, username, bio, followersCount, followingCount, tweetsCount, accountCreated,
+        isMintable, hasPool, wsolPoolAge, usdcPoolAge, wsolPoolTvl, usdcPoolTvl,
+        wsolPoolVolume24h, usdcPoolVolume24h, wsolPoolPrice, usdcPoolPrice, addedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    this.db
+      .prepare(sql)
+      .run(
+        params.tokenMint,
+        params.username,
+        params.bio || null,
+        params.followersCount,
+        params.followingCount,
+        params.tweetsCount,
+        params.accountCreated ?? null,
+        params.isMintable ? 1 : 0,
+        params.hasPool ? 1 : 0,
+        params.wsolPoolAge ?? null,
+        params.usdcPoolAge ?? null,
+        params.wsolPoolTvl ?? null,
+        params.usdcPoolTvl ?? null,
+        params.wsolPoolVolume24h ?? null,
+        params.usdcPoolVolume24h ?? null,
+        params.wsolPoolPrice ?? null,
+        params.usdcPoolPrice ?? null,
+        params.addedAt ?? Date.now(),
+      );
+  }
+
+  async getUnpostedAlpha(): Promise<any[]> {
+    const query = `
+      SELECT * FROM alpha_analysis
+      WHERE hasTweeted = 0
+      ORDER BY accountCreated DESC
+      LIMIT 1;
+    `;
+
+    try {
+      const entries = await this.db.all(query);
+
+      elizaLogger.info(`📊 DEBUG: Retrieved ${entries.length} unposted alpha entries.`);
+
+      if (entries.length > 0) {
+        elizaLogger.info(`📊 First entry: ${JSON.stringify(entries[0], null, 2)}`);
+      } else {
+        elizaLogger.warn(`⚠ No unposted alpha entries found.`);
+      }
+
+      return entries;
+    } catch (error) {
+      elizaLogger.error(`❌ Failed to fetch unposted alpha entries:`, error);
+      return [];
+    }
+  }
+
+  async markAlphaAsTweeted(tokenMint: string): Promise<void> {
+    const query = `
+      UPDATE alpha_analysis
+      SET hasTweeted = 1, tweetedAt = CURRENT_TIMESTAMP
+      WHERE tokenMint = ?;
+    `;
+    await this.db.run(query, [tokenMint]);
+  }
+
   async getMemories(params: {
     roomId: UUID;
     count?: number;

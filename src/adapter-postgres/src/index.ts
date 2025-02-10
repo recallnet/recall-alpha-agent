@@ -1090,6 +1090,113 @@ export class PostgresDatabaseAdapter
     }, 'getStoredFollowing');
   }
 
+  async insertAlphaAnalysis(params: {
+    tokenMint: string;
+    username: string;
+    bio?: string;
+    followersCount: number;
+    followingCount: number;
+    tweetsCount: number;
+    accountCreated?: Date;
+    isMintable: boolean;
+    hasPool: boolean;
+    wsolPoolAge?: number;
+    usdcPoolAge?: number;
+    wsolPoolTvl?: number;
+    usdcPoolTvl?: number;
+    wsolPoolVolume24h?: number;
+    usdcPoolVolume24h?: number;
+    wsolPoolPrice?: number;
+    usdcPoolPrice?: number;
+    addedAt?: Date;
+  }): Promise<void> {
+    return this.withDatabase(async () => {
+      const sql = `
+        INSERT INTO alpha_analysis (
+          tokenMint, username, bio, followersCount, followingCount, tweetsCount, accountCreated,
+          isMintable, hasPool, wsolPoolAge, usdcPoolAge, wsolPoolTvl, usdcPoolTvl,
+          wsolPoolVolume24h, usdcPoolVolume24h, wsolPoolPrice, usdcPoolPrice, addedAt
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7,
+          $8, $9, $10, $11, $12, $13,
+          $14, $15, $16, $17, $18
+        )
+        ON CONFLICT (tokenMint) DO UPDATE SET 
+          username = EXCLUDED.username,
+          bio = EXCLUDED.bio,
+          followersCount = EXCLUDED.followersCount,
+          followingCount = EXCLUDED.followingCount,
+          tweetsCount = EXCLUDED.tweetsCount,
+          accountCreated = EXCLUDED.accountCreated,
+          isMintable = EXCLUDED.isMintable,
+          hasPool = EXCLUDED.hasPool,
+          wsolPoolAge = EXCLUDED.wsolPoolAge,
+          usdcPoolAge = EXCLUDED.usdcPoolAge,
+          wsolPoolTvl = EXCLUDED.wsolPoolTvl,
+          usdcPoolTvl = EXCLUDED.usdcPoolTvl,
+          wsolPoolVolume24h = EXCLUDED.wsolPoolVolume24h,
+          usdcPoolVolume24h = EXCLUDED.usdcPoolVolume24h,
+          wsolPoolPrice = EXCLUDED.wsolPoolPrice,
+          usdcPoolPrice = EXCLUDED.usdcPoolPrice,
+          addedAt = EXCLUDED.addedAt;
+      `;
+
+      await this.pool.query(sql, [
+        params.tokenMint,
+        params.username,
+        params.bio || null,
+        params.followersCount,
+        params.followingCount,
+        params.tweetsCount,
+        params.accountCreated ?? null,
+        params.isMintable,
+        params.hasPool,
+        params.wsolPoolAge ?? null,
+        params.usdcPoolAge ?? null,
+        params.wsolPoolTvl ?? null,
+        params.usdcPoolTvl ?? null,
+        params.wsolPoolVolume24h ?? null,
+        params.usdcPoolVolume24h ?? null,
+        params.wsolPoolPrice ?? null,
+        params.usdcPoolPrice ?? null,
+        params.addedAt ?? new Date(),
+      ]);
+    }, 'insertAlphaAnalysis');
+  }
+
+  async getUnpostedAlpha(): Promise<any[]> {
+    const query = `
+      SELECT * FROM alpha_analysis
+      WHERE hasTweeted = FALSE
+      ORDER BY accountCreated DESC
+      LIMIT 1;
+    `;
+
+    try {
+      const result = await this.db.query(query);
+      elizaLogger.info(`📊 DEBUG: Retrieved ${result.rows.length} unposted alpha entries.`);
+
+      if (result.rows.length > 0) {
+        elizaLogger.info(`📊 First entry: ${JSON.stringify(result.rows[0], null, 2)}`);
+      }
+
+      return result.rows;
+    } catch (error) {
+      elizaLogger.error(`❌ Failed to fetch unposted alpha entries:`, error);
+      return [];
+    }
+  }
+
+  async markAlphaAsTweeted(tokenMint: string): Promise<void> {
+    const query = `
+      UPDATE alpha_analysis
+      SET hasTweeted = TRUE, tweetedAt = NOW()
+      WHERE tokenMint = $1;
+    `;
+    await this.db.query(query, [tokenMint]);
+  }
+
   async insertTwitterFollowing(params: {
     username: string;
     following_id: string;

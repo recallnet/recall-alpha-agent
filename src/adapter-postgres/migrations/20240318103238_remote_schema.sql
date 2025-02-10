@@ -852,4 +852,44 @@ CREATE INDEX IF NOT EXISTS "idx_twitter_following_username"
 CREATE INDEX IF NOT EXISTS "idx_following_id" 
     ON "public"."twitter_following"("following_id");
 
+-- Add Alpha Analysis Table
+CREATE TABLE IF NOT EXISTS "public"."alpha_analysis" (
+    "tokenMint" VARCHAR(44) PRIMARY KEY,
+    "username" VARCHAR(255) NOT NULL,
+    "bio" TEXT,
+    "followersCount" INTEGER NOT NULL,
+    "followingCount" INTEGER NOT NULL,
+    "tweetsCount" INTEGER NOT NULL,
+    "accountCreated" TIMESTAMPTZ,
+    "isMintable" BOOLEAN NOT NULL,
+    "hasPool" BOOLEAN NOT NULL,
+    "wsolPoolAge" REAL,
+    "usdcPoolAge" REAL,
+    "wsolPoolTvl" NUMERIC,
+    "usdcPoolTvl" NUMERIC,
+    "wsolPoolVolume24h" NUMERIC,
+    "usdcPoolVolume24h" NUMERIC,
+    "wsolPoolPrice" NUMERIC,
+    "usdcPoolPrice" NUMERIC,
+    "addedAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    "hasTweeted" BOOLEAN NOT NULL DEFAULT FALSE,
+    "tweetedAt" TIMESTAMPTZ DEFAULT NULL
+);
+
+ALTER TABLE "public"."alpha_analysis" OWNER TO "postgres";
+
+-- Indexes for optimized lookups
+CREATE INDEX IF NOT EXISTS "idx_alpha_analysis_username" 
+    ON "public"."alpha_analysis"("username");
+
+CREATE INDEX IF NOT EXISTS "idx_alpha_analysis_addedAt" 
+    ON "public"."alpha_analysis"("addedAt" DESC);
+
+-- Add appropriate permissions
+GRANT ALL ON TABLE "public"."alpha_analysis" TO "authenticated";
+GRANT ALL ON TABLE "public"."alpha_analysis" TO "service_role";
+GRANT ALL ON TABLE "public"."alpha_analysis" TO "supabase_admin";
+GRANT ALL ON TABLE "public"."alpha_analysis" TO "supabase_auth_admin";
+
+
 RESET ALL;

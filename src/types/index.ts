@@ -83,6 +83,57 @@ export interface ICotDatabaseAdapter {
     bio?: string;
   }): Promise<void>;
 
+  /** Insert alpha analysis record */
+  insertAlphaAnalysis(params: {
+    tokenMint: string;
+    username: string;
+    bio?: string;
+    followersCount: number;
+    followingCount: number;
+    tweetsCount: number;
+    accountCreated?: Date;
+    isMintable: boolean;
+    hasPool: boolean;
+    wsolPoolAge?: number;
+    usdcPoolAge?: number;
+    wsolPoolTvl?: number;
+    usdcPoolTvl?: number;
+    wsolPoolVolume24h?: number;
+    usdcPoolVolume24h?: number;
+    wsolPoolPrice?: number;
+    usdcPoolPrice?: number;
+    addedAt?: Date;
+  }): Promise<void>;
+
+  /** Retrieve an unposted alpha opportunity */
+  getUnpostedAlpha(): Promise<
+    {
+      tokenMint: string;
+      username: string;
+      bio?: string;
+      followersCount: number;
+      followingCount: number;
+      tweetsCount: number;
+      accountCreated?: Date;
+      isMintable: boolean;
+      hasPool: boolean;
+      wsolPoolAge?: number;
+      usdcPoolAge?: number;
+      wsolPoolTvl?: number;
+      usdcPoolTvl?: number;
+      wsolPoolVolume24h?: number;
+      usdcPoolVolume24h?: number;
+      wsolPoolPrice?: number;
+      usdcPoolPrice?: number;
+      addedAt?: Date;
+      hasTweeted: boolean;
+      tweetedAt?: Date;
+    }[]
+  >;
+
+  /** Mark an alpha opportunity as tweeted */
+  markAlphaAsTweeted(tokenMint: string): Promise<void>;
+
   /** Bulk insert multiple Twitter following records */
   bulkInsertTwitterFollowing(
     follows: {

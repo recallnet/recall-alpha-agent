@@ -144,6 +144,34 @@ CREATE TABLE IF NOT EXISTS  relationships (
     CONSTRAINT fk_user FOREIGN KEY ("userId") REFERENCES accounts("id") ON DELETE CASCADE
 );
 
+-- Add Alpha analysis table
+CREATE TABLE IF NOT EXISTS alpha_analysis (
+    tokenMint VARCHAR(44) PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    bio TEXT,
+    followersCount INTEGER NOT NULL,
+    followingCount INTEGER NOT NULL,
+    tweetsCount INTEGER NOT NULL,
+    accountCreated TIMESTAMPTZ,
+    isMintable BOOLEAN NOT NULL,
+    hasPool BOOLEAN NOT NULL,
+    wsolPoolAge REAL,
+    usdcPoolAge REAL,
+    wsolPoolTvl NUMERIC,
+    usdcPoolTvl NUMERIC,
+    wsolPoolVolume24h NUMERIC,
+    usdcPoolVolume24h NUMERIC,
+    wsolPoolPrice NUMERIC,
+    usdcPoolPrice NUMERIC,
+    addedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    hasTweeted BOOLEAN NOT NULL DEFAULT FALSE,
+    tweetedAt TIMESTAMPTZ DEFAULT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_alpha_analysis_username ON alpha_analysis(username);
+CREATE INDEX IF NOT EXISTS idx_alpha_analysis_addedAt ON alpha_analysis(addedAt DESC);
+
+
 -- Add Twitter following table
 CREATE TABLE IF NOT EXISTS twitter_following (
     username VARCHAR(255) NOT NULL,
