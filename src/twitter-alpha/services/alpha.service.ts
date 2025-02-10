@@ -164,9 +164,9 @@ export class AlphaService {
       const followingUsers: TwitterUser[] = [];
 
       let count = 0;
-      for await (const profile of this.scraper.getFollowing(userId, 5000)) {
-        // ✅ Capped at 5,000
-        if (++count > 5000) break; // ✅ Stop if exceeded
+      for await (const profile of this.scraper.getFollowing(userId, 20000)) {
+        // ✅ Capped at 30,000
+        if (++count > 20000) break; // ✅ Stop if exceeded
         followingUsers.push({
           id: profile.userId,
           username: profile.username,
