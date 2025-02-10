@@ -524,6 +524,10 @@ export class TwitterPostClient {
     elizaLogger.log('Generating new tweet');
     elizaLogger.info('🔍 Checking for new alpha analysis data...');
 
+    const MAX_ACCOUNT_AGE_DAYS = process.env.MAX_ACCOUNT_AGE_DAYS
+      ? parseInt(process.env.MAX_ACCOUNT_AGE_DAYS)
+      : 14; // defaults to 14 days if not set
+
     try {
       const roomId = stringToUuid('twitter_generate_room-' + this.client.profile.username);
       await this.runtime.ensureUserExists(
@@ -546,12 +550,19 @@ export class TwitterPostClient {
         elizaLogger.error('❌ Failed to fetch unposted alpha entries:', error);
       }
       if (newAlphaEntries && newAlphaEntries.length > 0) {
-        alphaEntry = newAlphaEntries[0]; // Select the first available entry
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - MAX_ACCOUNT_AGE_DAYS);
+        const recentEntries = newAlphaEntries.filter((entry) => {
+          const accountCreatedDate = entry.accountCreated ? new Date(entry.accountCreated) : null;
+          return accountCreatedDate && accountCreatedDate > cutoffDate;
+        });
 
-        elizaLogger.info(`🚀 Found new alpha opportunity for ${alphaEntry.tokenMint}`);
+        if (recentEntries.length > 0) {
+          alphaEntry = recentEntries[0];
 
-        // 🔹 Construct instructions for the agent
-        additionalContext = `
+          elizaLogger.info(`🚀 Found new alpha opportunity for ${alphaEntry.tokenMint}`);
+          // 🔹 Construct instructions for the agent
+          additionalContext = `
         # Crypto Alpha Discovery
         A new potential trading opportunity has been detected. Use the information below to craft an engaging post highlighting the alpha signal. Keep in mind that not all opportunities are created equal, so use the data to guide your post. For context, each token has a unique token mint address, and a corresponding Twitter account. It's important to consider how many people are following a token's Twitter account, as this can indicate the level of interest and potential for price movement, in addition to how new the account is, and whether there's an active pool, and the other data available.
 
@@ -571,6 +582,11 @@ export class TwitterPostClient {
         - Use engaging phrasing that appeals to crypto traders.
         - Avoid generic statements—tie the insight to the actual alpha data.
         `;
+        } else {
+          elizaLogger.info(
+            `⚠ No alpha opportunities found newer than ${MAX_ACCOUNT_AGE_DAYS} days. Skipping tweet generation.`,
+          );
+        }
       } else {
         elizaLogger.info('⚠ No new alpha opportunities found. Generating a general tweet.');
       }
@@ -581,7 +597,7 @@ export class TwitterPostClient {
           roomId: roomId,
           agentId: this.runtime.agentId,
           content: {
-            text: additionalContext ?? topics ?? '',
+            text: additionalContext !== null ? additionalContext : topics ? topics : '',
             action: 'TWEET',
           },
         },
