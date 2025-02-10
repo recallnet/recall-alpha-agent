@@ -103,9 +103,14 @@ export class AlphaService {
   }
 
   async login() {
-    const { X_USERNAME, X_PASSWORD, X_EMAIL, TWITTER_2FA_SECRET, TWITTER_RETRY_LIMIT } =
-      process.env;
-    if (!X_USERNAME || !X_PASSWORD) {
+    const {
+      TWITTER_USERNAME,
+      TWITTER_PASSWORD,
+      TWITTER_EMAIL,
+      TWITTER_2FA_SECRET,
+      TWITTER_RETRY_LIMIT,
+    } = process.env;
+    if (!TWITTER_USERNAME || !TWITTER_PASSWORD) {
       throw new Error('Twitter credentials are missing in environment variables');
     }
 
@@ -124,7 +129,12 @@ export class AlphaService {
           this.logger.info('✅ Successfully logged in using cookies.');
           break;
         } else {
-          await this.scraper.login(X_USERNAME, X_PASSWORD, X_USERNAME, TWITTER_2FA_SECRET);
+          await this.scraper.login(
+            TWITTER_USERNAME,
+            TWITTER_PASSWORD,
+            TWITTER_EMAIL,
+            TWITTER_2FA_SECRET,
+          );
           if (await this.scraper.isLoggedIn()) {
             this.logger.info('✅ Successfully logged in.');
             await this.scraper.setCookies(await this.scraper.getCookies());
