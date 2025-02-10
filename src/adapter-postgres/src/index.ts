@@ -1270,13 +1270,26 @@ export class PostgresDatabaseAdapter
 
   async markLogsAsSynced(logIds: UUID[]): Promise<void> {
     return this.withDatabase(async () => {
-      if (logIds.length === 0) return;
+      if (logIds.length === 0) {
+        elizaLogger.warn('⚠ No log IDs provided for marking as synced.');
+        return;
+      }
+
+      elizaLogger.info(`✅ Marking logs as synced: ${JSON.stringify(logIds)}`);
 
       const placeholders = logIds.map((_, i) => `$${i + 1}`).join(', ');
-      await this.pool.query(
-        `UPDATE logs SET "isSynced" = TRUE WHERE id IN (${placeholders})`,
-        logIds,
-      );
+      try {
+        await this.pool.query(
+          `UPDATE logs SET "isSynced" = TRUE WHERE id IN (${placeholders})`,
+          logIds,
+        );
+        elizaLogger.info(`✅ Successfully marked ${logIds.length} logs as synced.`);
+      } catch (error) {
+        elizaLogger.error(`❌ Failed to mark logs as synced: ${error.message}`, {
+          logIds,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }, 'markLogsAsSynced');
   }
 

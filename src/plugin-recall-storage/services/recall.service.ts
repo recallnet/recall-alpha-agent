@@ -59,6 +59,32 @@ export class RecallService extends Service {
   }
 
   /**
+   * Utility function to handle timeouts for async operations.
+   * @param promise The promise to execute.
+   * @param timeoutMs The timeout in milliseconds.
+   * @param operationName The name of the operation for logging.
+   * @returns The result of the promise.
+   */
+  async withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
+    let timeoutId: NodeJS.Timeout;
+
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`${operationName} operation timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
+
+    try {
+      const result = await Promise.race([promise, timeoutPromise]);
+      clearTimeout(timeoutId!);
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId!);
+      throw error;
+    }
+  }
+
+  /**
    * Gets the account information for the current user.
    * @returns The account information.
    */
@@ -212,28 +238,34 @@ export class RecallService extends Service {
 
   async storeBatchToRecall(bucketAddress: Address, batch: string[]): Promise<string | undefined> {
     try {
-      // Query existing log keys to determine the next log file index
-      // Generate a unique filename using timestamp instead of an incrementing index
       const timestamp = Date.now();
       const nextLogKey = `${this.prefix}${timestamp}.jsonl`;
-
-      // Join batch into a single JSONL file
       const batchData = batch.join('\n');
 
-      const addObject = await this.client
-        .bucketManager()
-        .add(bucketAddress, nextLogKey, new TextEncoder().encode(batchData));
-      // Store in Recall
-      const result = addObject.result;
+      // Add 30 second timeout to the add operation
+      const addObject = await this.withTimeout(
+        this.client
+          .bucketManager()
+          .add(bucketAddress, nextLogKey, new TextEncoder().encode(batchData)),
+        30000, // 30 second timeout
+        'Recall batch storage',
+      );
 
-      if (result) {
-        elizaLogger.info(`Batched JSONL logs stored under key: ${nextLogKey}`);
-        return nextLogKey;
+      if (!addObject || !addObject.result) {
+        elizaLogger.error('Recall API returned invalid response for batch storage');
+        return undefined;
       }
+
+      elizaLogger.info(`Successfully stored batch at key: ${addObject.result.key}`);
+      return nextLogKey;
     } catch (error) {
-      elizaLogger.error(`Error storing JSONL logs in Recall: ${error.message}`);
+      if (error.message.includes('timed out')) {
+        elizaLogger.error(`Recall API timed out while storing batch`);
+      } else {
+        elizaLogger.error(`Error storing JSONL logs in Recall: ${error.message}`);
+      }
+      return undefined;
     }
-    return undefined;
   }
 
   /**
@@ -244,26 +276,30 @@ export class RecallService extends Service {
 
   async syncLogsToRecall(bucketAlias: string, batchSizeKB = 4): Promise<void> {
     try {
-      const bucketAddress = await this.getOrCreateBucket(bucketAlias);
+      // Add timeout to bucket creation/retrieval
+      const bucketAddress = await this.withTimeout(
+        this.getOrCreateBucket(bucketAlias),
+        15000, // 15 second timeout
+        'Get/Create bucket',
+      );
 
-      // Fetch unsynced logs from SQLite
       const unsyncedLogs = await this.runtime.databaseAdapter.getUnsyncedLogs();
-      // filter unsynced logs by "chain-of-thought" type
       const filteredLogs = unsyncedLogs.filter((log) => log.type === 'chain-of-thought');
+
       if (filteredLogs.length === 0) {
         elizaLogger.info('No unsynced logs to process.');
         return;
-      } else {
-        elizaLogger.info(`Found ${filteredLogs.length} unsynced logs.`);
       }
 
+      elizaLogger.info(`Found ${filteredLogs.length} unsynced logs.`);
+
       let batch: string[] = [];
-      let batchSize = 0; // in bytes
+      let batchSize = 0;
       let syncedLogIds: UUID[] = [];
+      let failedLogIds: UUID[] = [];
 
       for (const log of filteredLogs) {
         try {
-          // Parse JSON stored in body
           const parsedLog = JSON.parse(log.body);
           const jsonlEntry = JSON.stringify({
             userId: parsedLog.userId,
@@ -272,40 +308,53 @@ export class RecallService extends Service {
             log: parsedLog.log,
           });
 
-          const logSize = new TextEncoder().encode(jsonlEntry).length; // Get byte size
+          const logSize = new TextEncoder().encode(jsonlEntry).length;
           elizaLogger.info(`Processing log entry of size: ${logSize} bytes`);
 
           if (batchSize + logSize > batchSizeKB * 1024) {
             elizaLogger.info(
-              `Batch size currently ${batchSize + logSize} bytes, exceeding limit of ${batchSizeKB} KB. Syncing batch...`,
+              `Batch size ${batchSize + logSize} bytes exceeds ${batchSizeKB} KB limit. Attempting sync...`,
             );
-            // Sync current batch
+
             const logFileKey = await this.storeBatchToRecall(bucketAddress, batch);
+
             if (logFileKey) {
               await this.runtime.databaseAdapter.markLogsAsSynced(syncedLogIds);
+              elizaLogger.info(`Successfully synced batch of ${syncedLogIds.length} logs`);
+            } else {
+              failedLogIds.push(...syncedLogIds);
+              elizaLogger.warn(
+                `Failed to sync batch of ${syncedLogIds.length} logs - will retry on next sync`,
+              );
             }
-            // Reset batch
+
             batch = [];
             batchSize = 0;
             syncedLogIds = [];
-          } else {
-            elizaLogger.info(
-              `Current batch size is ${batchSize + logSize} bytes, within the limit of ${batchSizeKB} KB. Not syncing yet.`,
-            );
           }
 
           batch.push(jsonlEntry);
           batchSize += logSize;
           syncedLogIds.push(log.id);
         } catch (error) {
-          elizaLogger.error(`Error parsing log entry: ${error.message}`);
+          elizaLogger.error(`Error processing log entry ${log.id}: ${error.message}`);
+          failedLogIds.push(log.id);
         }
       }
 
-      elizaLogger.success('All unsynced logs successfully synced to Recall.');
+      if (failedLogIds.length > 0) {
+        elizaLogger.warn(
+          `Sync attempt finished. ${failedLogIds.length} logs failed to upload and remain unsynced. Will retry next cycle.`,
+        );
+      } else {
+        elizaLogger.success('All processed logs were successfully uploaded and marked as synced');
+      }
     } catch (error) {
-      elizaLogger.error(`Error syncing logs to Recall: ${error.message}`);
-      throw error;
+      if (error.message.includes('timed out')) {
+        elizaLogger.error(`Recall sync operation timed out: ${error.message}`);
+      } else {
+        elizaLogger.error(`Error in syncLogsToRecall: ${error.message}`);
+      }
     }
   }
 

@@ -1,12 +1,13 @@
 # Recall Alpha Agent
 
-*Forget the noise. The real action happens before the hype.*
+_Forget the noise. The real action happens before the hype._
 
 ## 🚀 Overview
 
 The **Recall Alpha Agent** is an advanced AI-driven system that combines **crypto trading intelligence** with **persistent memory storage**. It operates in two primary capacities:
 
 1. **Alpha-Gathering Twitter Agent**:
+
    - Monitors selected **Twitter profiles** for new follows.
    - Extracts potential **token mints** from new follows' bios.
    - Queries **Raydium API** for token liquidity pool data.
@@ -34,13 +35,13 @@ The **Alpha Service** runs as an **Express server** in a continuous loop, monito
 
 ### **🛠 Key Components**
 
-| **Component**   | **Function** |
-|---------------|-------------|
-| **Twitter Scraper** | Extracts new follows from selected accounts. |
-| **Raydium API** | Fetches liquidity and pool data for detected tokens. |
-| **Database Logging** | Stores alpha signals in a structured database. |
-| **Automated Tweeting** | Posts insightful tweets based on analysis. |
-| **Recall Integration** | Stores chain-of-thought logs for AI reasoning. |
+| **Component**          | **Function**                                         |
+| ---------------------- | ---------------------------------------------------- |
+| **Twitter Scraper**    | Extracts new follows from selected accounts.         |
+| **Raydium API**        | Fetches liquidity and pool data for detected tokens. |
+| **Database Logging**   | Stores alpha signals in a structured database.       |
+| **Automated Tweeting** | Posts insightful tweets based on analysis.           |
+| **Recall Integration** | Stores chain-of-thought logs for AI reasoning.       |
 
 ## 🔥 **Modified Twitter Client**
 
@@ -77,13 +78,13 @@ This agent also provides **Recall storage** as a plugin for Eliza AI agents, all
 
 ## 📌 **Key Features & Actions**
 
-| **Action**        | **Trigger Format**                                                                                 | **Description**                                                                                                                                    |
-| ----------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Create Bucket** | `"Create a bucket named 'logs'"`                                                                  | Creates or retrieves a Recall bucket.                                                                        |
-| **List Buckets**  | `"Show my Recall buckets"`                                                                        | Fetches available storage buckets.                                                                           |
-| **Store Object**  | `"Add object 'file.txt' to bucket 'backup'"`                                                      | Saves an object (file, data) in a bucket.                                                                    |
-| **Retrieve Data** | `"Get object 'data.json' from bucket 'logs'"`                                                     | Downloads stored objects from Recall.                                                                        |
-| **Buy Credits**   | `"Buy 2 Recall credits"`                                                                          | Purchases more Recall storage credits.                                                                       |
+| **Action**        | **Trigger Format**                            | **Description**                           |
+| ----------------- | --------------------------------------------- | ----------------------------------------- |
+| **Create Bucket** | `"Create a bucket named 'logs'"`              | Creates or retrieves a Recall bucket.     |
+| **List Buckets**  | `"Show my Recall buckets"`                    | Fetches available storage buckets.        |
+| **Store Object**  | `"Add object 'file.txt' to bucket 'backup'"`  | Saves an object (file, data) in a bucket. |
+| **Retrieve Data** | `"Get object 'data.json' from bucket 'logs'"` | Downloads stored objects from Recall.     |
+| **Buy Credits**   | `"Buy 2 Recall credits"`                      | Purchases more Recall storage credits.    |
 
 ## 📌 **Environment Variables (`.env`)**
 
@@ -125,16 +126,19 @@ TWITTER_TARGET_USERS=
 ## 🚀 **Running the Services**
 
 ### **1️⃣ Setup & Install**
+
 ```bash
 pnpm i && pnpm start
 ```
 
 ### **2️⃣ Start the Alpha Monitoring Service**
+
 ```bash
 pnpm run start:twitter
 ```
 
 ### **3️⃣ Run Both Services**
+
 ```bash
 pnpm run start:all
 ```
@@ -147,4 +151,3 @@ pnpm run start:all
 - **💡 Automated Data Processing** – Fully **autonomous trading intelligence**.
 
 This agent ensures **you stay ahead of the market** by combining **Twitter intelligence, liquidity monitoring, and AI-powered insights** into a single automated workflow. 🎯
-
