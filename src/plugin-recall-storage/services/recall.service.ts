@@ -394,7 +394,8 @@ export class RecallService extends Service {
       // Query all objects with the designated prefix
       const queryResult = await this.client
         .bucketManager()
-        .query(bucketAddress, { prefix: `${this.prefix}/` });
+        .query(bucketAddress, { prefix: this.prefix }); // Remove the extra '/'
+
       if (!queryResult.result?.objects.length) {
         elizaLogger.info(`No chain-of-thought logs found in bucket: ${bucketAlias}`);
         return [];
@@ -403,11 +404,11 @@ export class RecallService extends Service {
       // Extract log filenames and sort by timestamp
       const logFiles = queryResult.result.objects
         .map((obj) => obj.key)
-        .filter((key) => key.match(/^cot\/\d+\.jsonl$/)) // Ensure correct format
+        .filter((key) => key.startsWith(this.prefix) && key.endsWith('.jsonl'))
         .sort((a, b) => {
-          // Extract timestamps and sort numerically
-          const timeA = parseInt(a.match(/^cot\/(\d+)\.jsonl$/)?.[1] || '0', 10);
-          const timeB = parseInt(b.match(/^cot\/(\d+)\.jsonl$/)?.[1] || '0', 10);
+          // Extract timestamps by removing prefix and .jsonl extension
+          const timeA = parseInt(a.slice(this.prefix.length, -6), 10);
+          const timeB = parseInt(b.slice(this.prefix.length, -6), 10);
           return timeA - timeB;
         });
 
@@ -430,6 +431,7 @@ export class RecallService extends Service {
           elizaLogger.error(`Error retrieving log file ${logFile}: ${error.message}`);
         }
       }
+
       elizaLogger.info(
         `Successfully retrieved and ordered ${allLogs.length} chain-of-thought logs.`,
       );
