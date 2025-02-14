@@ -44,7 +44,6 @@ export const buyCreditAction: Action = {
 
     // Now check for any matching keywords
     if (!keywords.some((keyword) => text.includes(keyword))) {
-      elizaLogger.error('BUY_CREDIT failed: No valid keyword found in message.');
       return false;
     }
 
