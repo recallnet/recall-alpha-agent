@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "eslint .",
+    "test": "tsc && node --loader ts-node/esm src/plugin-simulator-solana/services/trading.service.ts",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "build": "tsup src/index.ts --format esm --dts",
@@ -41,6 +42,7 @@
     "agent-twitter-client": "^0.0.18",
     "ai": "3.4.33",
     "amqplib": "0.10.5",
+    "axios": "^1.7.9",
     "better-sqlite3": "11.5.0",
     "bs58": "^6.0.0",
     "discord.js": "^14.16.1",
@@ -78,6 +80,7 @@
     "@typescript-eslint/utils": "^8.23.0",
     "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
+    "@project-serum/serum": "^0.13.65",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",
     "prettier": "^3.4.2",
