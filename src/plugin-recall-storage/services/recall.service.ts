@@ -1,12 +1,18 @@
 import {
   RecallClient,
-  testnet,
   walletClientFromPrivateKey,
+} from '../../../../js-recall/packages/sdk/dist/client.mjs';
+import { testnet } from '../../../../js-recall/packages/sdk/dist/chains.mjs';
+import {
+  // @ts-expect-error this is temporary
   CreditAccount,
+  // @ts-expect-error this is temporary
   BuyResult,
+  // @ts-expect-error this is temporary
   ListResult,
+  // @ts-expect-error this is temporary
   AddObjectResult,
-} from '../../../../js-recall/packages/sdk/dist/index.js'; // to replace with import from recall-sdk
+} from '../../../../js-recall/packages/sdk/dist/entities.mjs';
 import { elizaLogger, UUID, Service, ServiceType } from '@elizaos/core';
 import { parseEther } from 'viem';
 import { ICotAgentRuntime, ICotDatabaseAdapter } from '../../types/index.ts';
@@ -25,6 +31,7 @@ const envPrefix = process.env.COT_LOG_PREFIX as string;
 
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
+  // @ts-expect-error this is temporary
   private client: RecallClient;
   private db: ICotDatabaseAdapter; // Changed from runtime to db
   private syncInterval: NodeJS.Timeout | undefined;
@@ -272,12 +279,12 @@ export class RecallService extends Service {
         30000, // 30 second timeout
         'Recall batch storage',
       );
-
+      // @ts-expect-error this is temporary
       if (!addObject || !addObject.result) {
         elizaLogger.error('Recall API returned invalid response for batch storage');
         return undefined;
       }
-
+      // @ts-expect-error this is temporary
       elizaLogger.info(`Successfully stored batch at key: ${addObject.result.key}`);
       return nextLogKey;
     } catch (error) {
