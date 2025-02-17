@@ -131,17 +131,39 @@ TWITTER_TARGET_USERS=
 
 ### **1️⃣ Setup & Install**
 
+To ensure smooth operations and reduce the possibility of dependency errors, please ensure you're using the following node and pnpm versions:
+
+```
+pnpm -v 9.15.4
+node -v v22.11.0
+```
+Next, install:
+
 ```bash
-pnpm i && pnpm start
+pnpm i
+```
+
+To start up only the main agent loop (and not the Alpha-gathering service or Recall), run:
+
+```
+pnpm start
 ```
 
 ### **2️⃣ Start the Alpha Monitoring Service**
 
 ```bash
-pnpm run start:twitter
+pnpm run start:alpha
 ```
 
-### **3️⃣ Run Both Services**
+### **3️⃣ Start the Recall Service**
+
+```bash
+pnpm run start:recall
+```
+
+### **Start all three services in the same terminal**
+
+Use the following if you prefer running all three services in the same terminal, instead of running in separate terminals using the three steps above.
 
 ```bash
 pnpm run start:all
