@@ -1,12 +1,18 @@
 import {
   RecallClient,
-  testnet,
   walletClientFromPrivateKey,
+} from '../../../../js-recall/packages/sdk/dist/client.mjs';
+import { testnet } from '../../../../js-recall/packages/sdk/dist/chains.mjs';
+import {
+  // @ts-expect-error this is temporary
   CreditAccount,
+  // @ts-expect-error this is temporary
   BuyResult,
+  // @ts-expect-error this is temporary
   ListResult,
+  // @ts-expect-error this is temporary
   AddObjectResult,
-} from '../../../../js-recall/packages/sdk/dist/index.js'; // to replace with import from recall-sdk
+} from '../../../../js-recall/packages/sdk/dist/entities.mjs';
 import { elizaLogger, UUID, Service, ServiceType } from '@elizaos/core';
 import { parseEther } from 'viem';
 import { ICotAgentRuntime, ICotDatabaseAdapter } from '../../types/index.ts';
@@ -25,6 +31,7 @@ const envPrefix = process.env.COT_LOG_PREFIX as string;
 
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
+  // @ts-expect-error this is temporary
   private client: RecallClient;
   private db: ICotDatabaseAdapter; // Changed from runtime to db
   private syncInterval: NodeJS.Timeout | undefined;
@@ -272,12 +279,12 @@ export class RecallService extends Service {
         30000, // 30 second timeout
         'Recall batch storage',
       );
-
+      // @ts-expect-error this is temporary
       if (!addObject || !addObject.result) {
         elizaLogger.error('Recall API returned invalid response for batch storage');
         return undefined;
       }
-
+      // @ts-expect-error this is temporary
       elizaLogger.info(`Successfully stored batch at key: ${addObject.result.key}`);
       return nextLogKey;
     } catch (error) {
@@ -332,10 +339,12 @@ export class RecallService extends Service {
 
           const logSize = new TextEncoder().encode(jsonlEntry).length;
           elizaLogger.info(`Processing log entry of size: ${logSize} bytes`);
-
+          elizaLogger.info(`New batch size: ${batchSize + logSize} bytes`);
           if (batchSize + logSize > batchSizeKB * 1024) {
             elizaLogger.info(
-              `Batch size ${batchSize + logSize} bytes exceeds ${batchSizeKB} KB limit. Attempting sync...`,
+              `Batch size ${
+                batchSize + logSize
+              } bytes exceeds ${batchSizeKB} KB limit. Attempting sync...`,
             );
 
             const logFileKey = await this.storeBatchToRecall(bucketAddress, batch);
@@ -363,13 +372,19 @@ export class RecallService extends Service {
           failedLogIds.push(log.id);
         }
       }
+      if (batch.length > 0) {
+        // notify the user that the batch size was not exceeded
+        elizaLogger.info(
+          `Batch size ${batchSize} bytes did not exceed ${batchSizeKB} KB limit. Will recheck on next sync cycle.`,
+        );
+      }
 
       if (failedLogIds.length > 0) {
         elizaLogger.warn(
           `Sync attempt finished. ${failedLogIds.length} logs failed to upload and remain unsynced. Will retry next cycle.`,
         );
       } else {
-        elizaLogger.success('All processed logs were successfully uploaded and marked as synced');
+        elizaLogger.info('Sync cycle complete. Next sync in 2 minutes.');
       }
     } catch (error) {
       if (error.message.includes('timed out')) {
