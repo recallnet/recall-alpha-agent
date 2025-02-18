@@ -143,6 +143,25 @@ Next, install:
 pnpm i
 ```
 
+At the moment, this repository imports the `js-recall` TS SDK locally.
+
+In order to use this, clone the [js-recall](https://github.com/recallnet/js-recall) repository locally, at the same directory level as you've cloned this repository.
+
+Create a .env file at the root of `/apps/studio` and assign a value for the following:
+
+```bash
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=""
+```
+
+Next, go through the following steps to install and build:
+
+```bash
+pnpm install
+git submodule sync 
+git submodule update --init --recursive
+pnpm build
+```
+
 To start up only the main agent loop (and not the Alpha-gathering service or Recall), run:
 
 ```
