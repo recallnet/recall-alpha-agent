@@ -54,6 +54,9 @@ export class RecallService extends Service {
       this.alias = envAlias;
       this.prefix = envPrefix;
       this.db = _runtime.databaseAdapter;
+      // Use user-defined sync interval and batch size, if provided
+      this.intervalMs = intervalPeriod ? parseInt(intervalPeriod, 10) : 2 * 60 * 1000;
+      this.batchSizeKB = batchSize ? parseInt(batchSize, 10) : 4;
       elizaLogger.success('RecallService initialized successfully.');
     } catch (error) {
       elizaLogger.error(`Error initializing RecallService: ${error.message}`);
@@ -388,7 +391,11 @@ export class RecallService extends Service {
           `Sync attempt finished. ${failedLogIds.length} logs failed to upload and remain unsynced. Will retry next cycle.`,
         );
       } else {
-        elizaLogger.info('Sync cycle complete. Next sync in 2 minutes.');
+        const logSyncInterval =
+          this.intervalMs < 60000
+            ? `${this.intervalMs / 1000} seconds`
+            : `${this.intervalMs / 1000 / 60} minute`;
+        elizaLogger.info(`Sync cycle complete. Next sync in ${logSyncInterval}.`);
       }
     } catch (error) {
       if (error.message.includes('timed out')) {
@@ -464,9 +471,9 @@ export class RecallService extends Service {
   /**
    * Starts the periodic log syncing.
    * @param intervalMs The interval in milliseconds for syncing logs.
+   * @param batchSizeKB The maximum size of each batch in kilobytes.
    */
-
-  public startPeriodicSync(intervalMs = 2 * 60 * 1000): void {
+  public startPeriodicSync(intervalMs = 2 * 60 * 1000, batchSizeKB = 4): void {
     if (this.syncInterval) {
       elizaLogger.warn('Log sync is already running.');
       return;
@@ -475,14 +482,14 @@ export class RecallService extends Service {
     elizaLogger.info('Starting periodic log sync...');
     this.syncInterval = setInterval(async () => {
       try {
-        await this.syncLogsToRecall(this.alias);
+        await this.syncLogsToRecall(this.alias, batchSizeKB);
       } catch (error) {
         elizaLogger.error(`Periodic log sync failed: ${error.message}`);
       }
     }, intervalMs);
 
     // Perform an immediate sync on startup
-    this.syncLogsToRecall(this.alias).catch((error) =>
+    this.syncLogsToRecall(this.alias, batchSizeKB).catch((error) =>
       elizaLogger.error(`Initial log sync failed: ${error.message}`),
     );
   }
