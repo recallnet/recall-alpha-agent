@@ -1,23 +1,13 @@
-import {
-  RecallClient,
-  walletClientFromPrivateKey,
-} from '../../../../js-recall/packages/sdk/dist/client.mjs';
-import { testnet } from '../../../../js-recall/packages/chains/dist/index.mjs';
-// @ts-expect-error - this is temporary
-import { CreditAccount } from '../../../../js-recall/packages/sdk/dist/credit.mjs';
-// @ts-expect-error - this is temporary
-import { ListResult } from '../../../../js-recall/packages/sdk/dist/bucket.mjs';
 import { elizaLogger, UUID, Service, ServiceType } from '@elizaos/core';
-import { parseEther, TransactionReceipt } from 'viem';
+import { ChainName, getChain, testnet } from '@recallnet/chains';
+import { AccountInfo } from '@recallnet/sdk/account';
+import { ListResult } from '@recallnet/sdk/bucket';
+import { RecallClient, walletClientFromPrivateKey } from '@recallnet/sdk/client';
+import { CreditAccount } from '@recallnet/sdk/credit';
+import { parseEther, TransactionReceipt, Hex } from 'viem';
 import { ICotAgentRuntime, ICotDatabaseAdapter } from '../../types/index.ts';
 
 type Address = `0x${string}`;
-type AccountInfo = {
-  address: Address;
-  nonce: number;
-  balance: bigint;
-  parentBalance?: bigint;
-};
 
 type Result<T = unknown> = {
   result: T;
@@ -26,18 +16,22 @@ type Result<T = unknown> = {
   };
 };
 
-const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
+const privateKey = process.env.RECALL_PRIVATE_KEY as Hex;
 const envAlias = process.env.RECALL_BUCKET_ALIAS as string;
-const envPrefix = process.env.COT_LOG_PREFIX as string;
+const envPrefix = process.env.RECALL_COT_LOG_PREFIX as string;
+const network = process.env.RECALL_NETWORK as string;
+const intervalPeriod = process.env.RECALL_SYNC_INTERVAL as string;
+const batchSize = process.env.RECALL_BATCH_SIZE as string;
 
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
-  // @ts-expect-error this is temporary
   private client: RecallClient;
   private db: ICotDatabaseAdapter; // Changed from runtime to db
   private syncInterval: NodeJS.Timeout | undefined;
   private alias: string;
   private prefix: string;
+  private intervalMs: number;
+  private batchSizeKB: number;
 
   getInstance(): RecallService {
     return RecallService.getInstance();
@@ -45,20 +39,24 @@ export class RecallService extends Service {
 
   async initialize(_runtime: ICotAgentRuntime): Promise<void> {
     try {
-      if (!process.env.RECALL_PRIVATE_KEY) {
+      if (!privateKey) {
         throw new Error('RECALL_PRIVATE_KEY is required');
       }
-      if (!process.env.RECALL_BUCKET_ALIAS) {
+      if (!envAlias) {
         throw new Error('RECALL_BUCKET_ALIAS is required');
       }
-      if (!process.env.COT_LOG_PREFIX) {
-        throw new Error('COT_LOG_PREFIX is required');
+      if (!envPrefix) {
+        throw new Error('RECALL_COT_LOG_PREFIX is required');
       }
-      const wallet = walletClientFromPrivateKey(privateKey, testnet);
+      const chain = network ? getChain(network as ChainName) : testnet;
+      const wallet = walletClientFromPrivateKey(privateKey, chain);
       this.client = new RecallClient({ walletClient: wallet });
       this.alias = envAlias;
       this.prefix = envPrefix;
       this.db = _runtime.databaseAdapter;
+      // Use user-defined sync interval and batch size, if provided
+      this.intervalMs = intervalPeriod ? parseInt(intervalPeriod, 10) : 2 * 60 * 1000;
+      this.batchSizeKB = batchSize ? parseInt(batchSize, 10) : 4;
       elizaLogger.success('RecallService initialized successfully.');
     } catch (error) {
       elizaLogger.error(`Error initializing RecallService: ${error.message}`);
@@ -67,21 +65,23 @@ export class RecallService extends Service {
 
   async initializeMonitoring(_db: ICotDatabaseAdapter): Promise<void> {
     try {
-      if (!process.env.RECALL_PRIVATE_KEY) {
+      if (!privateKey) {
         throw new Error('RECALL_PRIVATE_KEY is required');
       }
-      if (!process.env.RECALL_BUCKET_ALIAS) {
+      if (!envAlias) {
         throw new Error('RECALL_BUCKET_ALIAS is required');
       }
-      if (!process.env.COT_LOG_PREFIX) {
-        throw new Error('COT_LOG_PREFIX is required');
+      if (!envPrefix) {
+        throw new Error('RECALL_COT_LOG_PREFIX is required');
       }
-      const wallet = walletClientFromPrivateKey(privateKey, testnet);
+      const chain = network ? getChain(network as ChainName) : testnet;
+      const wallet = walletClientFromPrivateKey(privateKey, chain);
       this.client = new RecallClient({ walletClient: wallet });
-      this.alias = envAlias;
-      this.prefix = envPrefix;
+      // Use user-defined sync interval and batch size, if provided
+      this.intervalMs = intervalPeriod ? parseInt(intervalPeriod, 10) : 2 * 60 * 1000;
+      this.batchSizeKB = batchSize ? parseInt(batchSize, 10) : 4;
       this.db = _db;
-      await this.startPeriodicSync();
+      this.startPeriodicSync(this.intervalMs, this.batchSizeKB);
       elizaLogger.success('RecallService initialized successfully, starting periodic sync.');
     } catch (error) {
       elizaLogger.error(`Error initializing RecallService: ${error.message}`);
@@ -288,7 +288,6 @@ export class RecallService extends Service {
         30000, // 30 second timeout
         'Recall batch storage',
       );
-      // @ts-expect-error this is temporary
       if (!addObject?.meta?.tx) {
         // Check for transaction receipt instead of result
         elizaLogger.error('Recall API returned invalid response for batch storage');
@@ -394,7 +393,11 @@ export class RecallService extends Service {
           `Sync attempt finished. ${failedLogIds.length} logs failed to upload and remain unsynced. Will retry next cycle.`,
         );
       } else {
-        elizaLogger.info('Sync cycle complete. Next sync in 2 minutes.');
+        const logSyncInterval =
+          this.intervalMs < 60000
+            ? `${this.intervalMs / 1000} seconds`
+            : `${this.intervalMs / 1000 / 60} minutes`;
+        elizaLogger.info(`Sync cycle complete. Next sync in ${logSyncInterval}.`);
       }
     } catch (error) {
       if (error.message.includes('timed out')) {
@@ -470,9 +473,9 @@ export class RecallService extends Service {
   /**
    * Starts the periodic log syncing.
    * @param intervalMs The interval in milliseconds for syncing logs.
+   * @param batchSizeKB The maximum size of each batch in kilobytes.
    */
-
-  public startPeriodicSync(intervalMs = 2 * 60 * 1000): void {
+  public startPeriodicSync(intervalMs = 2 * 60 * 1000, batchSizeKB = 4): void {
     if (this.syncInterval) {
       elizaLogger.warn('Log sync is already running.');
       return;
@@ -481,14 +484,14 @@ export class RecallService extends Service {
     elizaLogger.info('Starting periodic log sync...');
     this.syncInterval = setInterval(async () => {
       try {
-        await this.syncLogsToRecall(this.alias);
+        await this.syncLogsToRecall(this.alias, batchSizeKB);
       } catch (error) {
         elizaLogger.error(`Periodic log sync failed: ${error.message}`);
       }
     }, intervalMs);
 
     // Perform an immediate sync on startup
-    this.syncLogsToRecall(this.alias).catch((error) =>
+    this.syncLogsToRecall(this.alias, batchSizeKB).catch((error) =>
       elizaLogger.error(`Initial log sync failed: ${error.message}`),
     );
   }

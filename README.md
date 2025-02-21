@@ -105,9 +105,9 @@ TWITTER_PASSWORD=your-twitter-password
 TWITTER_EMAIL=your-twitter-email
 
 # Recall Storage
-RECALL_PRIVATE_KEY=your-recall-key
-RECALL_BUCKET_ALIAS=your-default-bucket
-COT_LOG_PREFIX=cot/
+RECALL_PRIVATE_KEY="your-private-key"
+RECALL_BUCKET_ALIAS="your-default-bucket"
+RECALL_COT_LOG_PREFIX="cot/"
 
 # Database Configuration (Postgres/SQLite)
 POSTGRES_URL=your-postgres-url
@@ -137,29 +137,11 @@ To ensure smooth operations and reduce the possibility of dependency errors, ple
 pnpm -v 9.15.4
 node -v v22.11.0
 ```
+
 Next, install:
 
 ```bash
 pnpm i
-```
-
-At the moment, this repository imports the `js-recall` TS SDK locally.
-
-In order to use this, clone the [js-recall](https://github.com/recallnet/js-recall) repository locally, at the same directory level as you've cloned this repository.
-
-Create a .env file at the root of `/apps/studio` and assign a value for the following:
-
-```bash
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=""
-```
-
-Next, go through the following steps to install and build:
-
-```bash
-pnpm install
-git submodule sync 
-git submodule update --init --recursive
-pnpm build
 ```
 
 To start up only the main agent loop (and not the Alpha-gathering service or Recall), run:
