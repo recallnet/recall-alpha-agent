@@ -65,21 +65,23 @@ export class RecallService extends Service {
 
   async initializeMonitoring(_db: ICotDatabaseAdapter): Promise<void> {
     try {
-      if (!process.env.RECALL_PRIVATE_KEY) {
+      if (!privateKey) {
         throw new Error('RECALL_PRIVATE_KEY is required');
       }
-      if (!process.env.RECALL_BUCKET_ALIAS) {
+      if (!envAlias) {
         throw new Error('RECALL_BUCKET_ALIAS is required');
       }
-      if (!process.env.COT_LOG_PREFIX) {
-        throw new Error('COT_LOG_PREFIX is required');
+      if (!envPrefix) {
+        throw new Error('RECALL_COT_LOG_PREFIX is required');
       }
-      const wallet = walletClientFromPrivateKey(privateKey, testnet);
+      const chain = network ? getChain(network as ChainName) : testnet;
+      const wallet = walletClientFromPrivateKey(privateKey, chain);
       this.client = new RecallClient({ walletClient: wallet });
-      this.alias = envAlias;
-      this.prefix = envPrefix;
+      // Use user-defined sync interval and batch size, if provided
+      this.intervalMs = intervalPeriod ? parseInt(intervalPeriod, 10) : 2 * 60 * 1000;
+      this.batchSizeKB = batchSize ? parseInt(batchSize, 10) : 4;
       this.db = _db;
-      await this.startPeriodicSync();
+      this.startPeriodicSync(this.intervalMs, this.batchSizeKB);
       elizaLogger.success('RecallService initialized successfully, starting periodic sync.');
     } catch (error) {
       elizaLogger.error(`Error initializing RecallService: ${error.message}`);
@@ -394,7 +396,7 @@ export class RecallService extends Service {
         const logSyncInterval =
           this.intervalMs < 60000
             ? `${this.intervalMs / 1000} seconds`
-            : `${this.intervalMs / 1000 / 60} minute`;
+            : `${this.intervalMs / 1000 / 60} minutes`;
         elizaLogger.info(`Sync cycle complete. Next sync in ${logSyncInterval}.`);
       }
     } catch (error) {
