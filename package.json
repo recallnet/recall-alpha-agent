@@ -40,6 +40,8 @@
     "@tavily/core": "0.0.2",
     "@types/pg": "8.11.10",
     "agent-twitter-client": "^0.0.18",
+    "@recallnet/chains": "^0.0.1",
+    "@recallnet/sdk": "^0.0.2",
     "ai": "3.4.33",
     "amqplib": "0.10.5",
     "axios": "^1.7.9",
