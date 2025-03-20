@@ -54,11 +54,11 @@ importers:
         specifier: 0.1.111-alpha
         version: 0.1.111-alpha(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.5.3)(utf-8-validate@5.0.10)
       '@recallnet/chains':
-        specifier: ^0.0.3
-        version: 0.0.3(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
+        specifier: ^0.0.6
+        version: 0.0.6(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
       '@recallnet/sdk':
-        specifier: ^0.0.4
-        version: 0.0.4(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
+        specifier: ^0.0.7
+        version: 0.0.7(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
       '@solana/spl-token':
         specifier: ^0.4.12
         version: 0.4.12(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.5.3)(utf-8-validate@5.0.10)
@@ -2582,20 +2582,20 @@ packages:
   '@raydium-io/raydium-sdk-v2@0.1.95-alpha':
     resolution: {integrity: sha512-+u7yxo/R1JDysTCzOuAlh90ioBe2DlM2Hbcz/tFsxP/YzmnYQzShvNjcmc0361a4zJhmlrEJfpFXW0J3kkX5vA==}
 
-  '@recallnet/chains@0.0.3':
-    resolution: {integrity: sha512-R+WWhUAS5gbsTm1QOeR32GEI/r5z5WwiTCnd+tZPGo7gLHVwEHLCdO0Bes1V2BouFJS7berBEDpkG2YMWkkXaQ==}
+  '@recallnet/chains@0.0.6':
+    resolution: {integrity: sha512-GesLuA11tHBSBjd768gUtCFFBMcVTx6Xq18IqeMrYPm2OsITCJUnBxUcafT2T6nQDl4XjF3L1ePZ+fN8IfLnwQ==}
 
-  '@recallnet/contracts@0.0.1':
-    resolution: {integrity: sha512-Iu867MFc4+9K09bsXvXX0gKolumDsSgVDHV9fSzI8xSabYAOYcMdWYIm9JKnw4/7tGjgYsrsIyQl/fekKl1Mkg==}
+  '@recallnet/contracts@0.0.4':
+    resolution: {integrity: sha512-nF4RhDGqhF7mFcUKteGYx1zXUdfO9jKmlIVhMYYiKfBd67hUhFedQUogYKE9ngg3LQ+S34MxRdJeYxUaPK/Vvg==}
 
   '@recallnet/fvm@0.0.1':
     resolution: {integrity: sha512-+XV8fXLRU8eCZLaZCKda1XDwxJnJ34nrUHIejZdcqSUH0bXjxjUTAWk8NY/mex8XjWCuZeqKUcspJr0mb9S7UQ==}
 
-  '@recallnet/network-constants@0.0.3':
-    resolution: {integrity: sha512-6MYSLX/sXm57bJwmZ9y8ivyi2sOcHyqcYcg2UcLE71h2q95AEwa89jvG9NV9mNWpTXWcV21a3ozm+d2zO0tkpQ==}
+  '@recallnet/network-constants@0.0.6':
+    resolution: {integrity: sha512-r2ycx9jH5+nPs9YmQBHoPvdDRzbbB6+FWSntkMh12kZ0W4rsazyIfj3YJClkNR+oBAfbQEi6a+k1jv2fZSkC6A==}
 
-  '@recallnet/sdk@0.0.4':
-    resolution: {integrity: sha512-1jz5s4Yp+ZpEsNAsku/zgkQU3X5y+vqVzkl/nr4t3d4L/TdXuBkqSy2faTSU1hrp7BaUMZsrjwxjv5D9YzzaNw==}
+  '@recallnet/sdk@0.0.7':
+    resolution: {integrity: sha512-m+KlkI1hoO//rjubAPZ9baO8vu95tVaYN83Cw5IodLGOo5ismBT2VhUg4vT+M+qep4tlDNDxNp45Jhu79DHeSw==}
 
   '@reflink/reflink-darwin-arm64@0.1.19':
     resolution: {integrity: sha512-ruy44Lpepdk1FqDz38vExBY/PVUsjxZA+chd9wozjUH9JjuDT/HEaQYA6wYN9mf041l0yLVar6BCZuWABJvHSA==}
@@ -14273,9 +14273,9 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@recallnet/chains@0.0.3(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)':
+  '@recallnet/chains@0.0.6(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)':
     dependencies:
-      '@recallnet/network-constants': 0.0.3
+      '@recallnet/network-constants': 0.0.6
       viem: 2.22.23(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
     transitivePeerDependencies:
       - bufferutil
@@ -14283,7 +14283,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@recallnet/contracts@0.0.1(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)':
+  '@recallnet/contracts@0.0.4(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)':
     dependencies:
       viem: 2.22.23(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
     transitivePeerDependencies:
@@ -14298,15 +14298,15 @@ snapshots:
       cborg: 4.2.8
       uint8arrays: 5.1.0
 
-  '@recallnet/network-constants@0.0.3': {}
+  '@recallnet/network-constants@0.0.6': {}
 
-  '@recallnet/sdk@0.0.4(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)':
+  '@recallnet/sdk@0.0.7(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)':
     dependencies:
       '@noble/hashes': 1.7.1
-      '@recallnet/chains': 0.0.3(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
-      '@recallnet/contracts': 0.0.1(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
+      '@recallnet/chains': 0.0.6(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
+      '@recallnet/contracts': 0.0.4(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.23.8)
       '@recallnet/fvm': 0.0.1
-      '@recallnet/network-constants': 0.0.3
+      '@recallnet/network-constants': 0.0.6
       '@sindresorhus/fnv1a': 3.1.0
       file-type: 19.6.0
       uint8arrays: 5.1.0
