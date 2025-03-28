@@ -64,7 +64,7 @@ ANSWER:
 { "user": "{{agentName}}", "text": "<string>", "expectedAction": "<string>" }
 \`\`\`
 
-The "action" field should be one of the options in [Available Actions] and the "text" field should be the response you want to send.
+The "expectedAction" field should be one of the options in [Available Actions] and the "text" field should be the response you want to send.
 `;
 
 /**
@@ -133,10 +133,10 @@ export const cotProvider: Provider = {
       } else {
         state = await runtime.updateRecentMessageState(state);
       }
+      const freshRuntime = runtime;
+      freshRuntime.character.system = systemPrompt;
 
-      runtime.character.system = systemPrompt;
-
-      state.actions = `# Actions \n${JSON.stringify(runtime.actions)}`;
+      state.actions = `# Actions \n${JSON.stringify(freshRuntime.actions)}`;
 
       const context = composeContext({
         state,
@@ -147,7 +147,7 @@ export const cotProvider: Provider = {
       // Generate text using the chain-of-thought–enabled system prompt
       elizaLogger.info(`${logPrefix} Generating text with LLM model`);
       const gen = await generateText({
-        runtime,
+        runtime: freshRuntime,
         context,
         modelClass: ModelClass.LARGE,
       });

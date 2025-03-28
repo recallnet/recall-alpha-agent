@@ -64,16 +64,6 @@ export class AlphaService extends Service {
       this.runtime = _runtime;
       this.db = _runtime.databaseAdapter;
       await this.ensureRequiredTables();
-
-      // Start profile cache cleanup
-      if (!this.profileCacheCleanupInterval) {
-        this.profileCacheCleanupInterval = setInterval(
-          () => {
-            this.cleanupProfileCache();
-          },
-          5 * 60 * 1000,
-        );
-      }
       elizaLogger.info('[AlphaService] Initialized Successfully');
     } catch (error) {
       elizaLogger.error(`Failed to initialize AlphaService: ${error.message}`);
@@ -87,14 +77,26 @@ export class AlphaService extends Service {
 
   async startMonitoring(db: IDatabaseAdapter) {
     if (this.isMonitoring) return;
-    this.scraper = new Scraper();
+    if (!this.scraper || !(await this.scraper.isLoggedIn())) {
+      this.scraper = new Scraper();
+      await this.login();
+    }
     this.solanaService = new SolanaService();
     this.isMonitoring = true;
     this.db = db;
     await this.ensureRequiredTables();
 
+    // Start profile cache cleanup
+    if (!this.profileCacheCleanupInterval) {
+      this.profileCacheCleanupInterval = setInterval(
+        () => {
+          this.cleanupProfileCache();
+        },
+        5 * 60 * 1000,
+      );
+    }
+
     this.logger.info('🚀 Starting Twitter Follow Monitoring...');
-    await this.login();
 
     const monitor = async () => {
       if (!this.isMonitoring) return; // ✅ Exit if monitoring is stopped
@@ -1075,13 +1077,16 @@ export class AlphaService extends Service {
         this.logger.error('No Twitter username provided to check recent tweets');
         return [];
       }
-
-      // Ensure login
-      await this.login();
+      if (!this.scraper || !(await this.scraper.isLoggedIn())) {
+        this.scraper = new Scraper();
+        await this.login();
+      }
+      const userId = await this.getUserId(twitterUsername);
 
       // Fetch recent tweets
       this.logger.info(`Fetching ${count} recent tweets from @${twitterUsername}`);
-      const response = await this.scraper.getUserTweets(twitterUsername, count);
+      const response = await this.scraper.getUserTweets(userId, count);
+      elizaLogger.info(JSON.stringify(response));
 
       // The response has format { tweets: Tweet[], next?: string }
       const tweetsArray = response.tweets || [];

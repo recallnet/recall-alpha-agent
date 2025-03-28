@@ -14,7 +14,28 @@ export const unpostedAlphaProvider: Provider = {
     try {
       // Get the alpha service and type cast it correctly
       const service = runtime.services.get('alpha' as ServiceType) as AlphaService;
+      const twitterUsername = process.env.TWITTER_USERNAME;
+      // Get the count from env var or default to 3
+      const count = 3;
+
+      // Check recent tweets and mark alpha signals as tweeted
+      const markedTokens = await service.checkAndMarkTweetedAlphaSignals(twitterUsername, count);
+      // Log the evaluation results
+      if (markedTokens.length > 0) {
+        elizaLogger.info(
+          `[unpostedAlphaProvider] marked ${markedTokens.length} signals as tweeted`,
+        );
+
+        // We can't directly add to memory, so we'll just log the event
+        elizaLogger.info(
+          `Alpha signal update: ${markedTokens.length} signals marked as tweeted for @${twitterUsername}`,
+        );
+      }
       const unpostedAlpha = await service.getUnpostedAlpha();
+
+      if (!twitterUsername) {
+        throw new Error('TWITTER_USERNAME environment variable not set');
+      }
 
       if (!unpostedAlpha || unpostedAlpha.length === 0) {
         elizaLogger.info('No unposted alpha signals found');
