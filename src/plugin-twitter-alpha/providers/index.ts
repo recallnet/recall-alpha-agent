@@ -48,11 +48,15 @@ export const unpostedAlphaProvider: Provider = {
           addedAt: entry.addedAt,
         };
       });
-      elizaLogger.info(
+      _state.knowledge =
         `Use the following alpha signal to create a post about this potential opportunity: \n` +
-          JSON.stringify(formattedAlpha[0], null, 2),
+        JSON.stringify(formattedAlpha[0], null, 2) +
+        `\n NOTE: if this field exists, you should absolutely create a Twitter post as your action`;
+      await runtime.updateRecentMessageState(_state);
+      return (
+        `Use the following alpha signal to create a post about this potential opportunity: \n` +
+        JSON.stringify(formattedAlpha[0], null, 2)
       );
-      return JSON.stringify(formattedAlpha, null, 2);
     } catch (error) {
       elizaLogger.error(
         `Error fetching unposted alpha: ${error instanceof Error ? error.message : String(error)}`,

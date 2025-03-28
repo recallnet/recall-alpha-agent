@@ -61,7 +61,7 @@ ANSWER:
 
 # Response format should be formatted in a valid JSON block like this:
 \`\`\`json
-{ "user": "{{agentName}}", "text": "<string>", "action": "<string>" }
+{ "user": "{{agentName}}", "text": "<string>", "expectedAction": "<string>" }
 \`\`\`
 
 The "action" field should be one of the options in [Available Actions] and the "text" field should be the response you want to send.
@@ -142,6 +142,7 @@ export const cotProvider: Provider = {
         state,
         template: messageHandlerTemplate,
       });
+      elizaLogger.info(JSON.stringify(context));
 
       // Generate text using the chain-of-thought–enabled system prompt
       elizaLogger.info(`${logPrefix} Generating text with LLM model`);

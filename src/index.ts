@@ -14,8 +14,8 @@ import { initializeClients } from './clients/index.ts';
 import { getTokenForProvider, loadCharacters } from './config/index.ts';
 import { initializeDatabase } from './database/index.ts';
 import { recallStoragePlugin } from './plugin-recall-storage/index.ts';
-import { twitterAlphaPlugin } from './twitter-alpha/src/index.ts';
-import { AlphaService } from './twitter-alpha/src/services/alpha.service.ts';
+import { twitterAlphaPlugin } from './plugin-twitter-alpha/index.ts';
+import { AlphaService } from './plugin-twitter-alpha/services/alpha.service.ts';
 import { RecallService } from './plugin-recall-storage/services/recall.service.ts';
 
 const __filename = fileURLToPath(import.meta.url);
