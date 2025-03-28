@@ -112,19 +112,21 @@ RECALL_COT_LOG_PREFIX="cot/"
 # Database Configuration (Postgres/SQLite)
 POSTGRES_URL=your-postgres-url
 
-# Twitter Monitoring Targets
-TWITTER_ACCOUNTS=comma-separated-list
-
-# Posting Schedule
-TWITTER_DRY_RUN=false
-POST_INTERVAL_MIN=10
-POST_INTERVAL_MAX=30
+# Twitter Client Configuration
+TWITTER_USERNAME=
+TWITTER_PASSWORD=
+TWITTER_EMAIL=
+TWITTER_TARGET_USERS=
+TWITTER_DRY_RUN=false      # Set to true for testing without posting
+MAX_TWEET_LENGTH=280       # Default tweet length limit
+TWITTER_SEARCH_ENABLE=true # Enable search functionality
+TWITTER_RETRY_LIMIT=5      # Login retry attempts
+TWITTER_POLL_INTERVAL=120  # Poll interval in seconds
 
 # AI Configuration
 USE_OPENAI_EMBEDDING=TRUE
 SERVER_PORT=3000
 DAEMON_PROCESS=false
-TWITTER_TARGET_USERS=
 ```
 
 ## 🚀 **Running the Services**
