@@ -14,7 +14,9 @@ import { initializeClients } from './clients/index.ts';
 import { getTokenForProvider, loadCharacters } from './config/index.ts';
 import { initializeDatabase } from './database/index.ts';
 import { recallStoragePlugin } from './plugin-recall-storage/index.ts';
-import { tradingSimulatorPlugin } from './plugin-simulator-solana/index.ts';
+import { twitterAlphaPlugin } from './plugin-twitter-alpha/index.ts';
+import { AlphaService } from './plugin-twitter-alpha/services/alpha.service.ts';
+import { RecallService } from './plugin-recall-storage/services/recall.service.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,7 +42,7 @@ export function createAgent(character: Character, db: any, cache: any, token: st
     plugins: [
       bootstrapPlugin,
       recallStoragePlugin,
-      tradingSimulatorPlugin,
+      twitterAlphaPlugin,
       nodePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
     ].filter(Boolean),
@@ -79,6 +81,15 @@ async function startAgent(character: Character, directClient: DirectClient) {
     // Ensure compatibility by casting runtime to the expected type
     const compatibleRuntime = runtime as any;
     directClient.registerAgent(compatibleRuntime);
+
+    // Register services
+    const alphaService = new AlphaService();
+    await alphaService.initialize(runtime);
+    runtime.registerService(alphaService);
+
+    const recallService = new RecallService();
+    await recallService.initialize(runtime);
+    runtime.registerService(recallService);
 
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);

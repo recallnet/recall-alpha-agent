@@ -1,8 +1,8 @@
 // src/twitter-monitor/server.ts
 import express from 'express';
 import { elizaLogger } from '@elizaos/core';
-import { AlphaService } from '../services/alpha.service.ts';
-import { initializeDatabase } from '../../database/index.ts';
+import { AlphaService } from './services/alpha.service.ts';
+import { initializeDatabase } from '../database/index.ts';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -15,13 +15,12 @@ const PORT = process.env.TWITTER_MONITOR_PORT || 3001;
 async function startServer() {
   try {
     // Initialize database with same path as main app
-    const dataDir = path.join(__dirname, '../../../data');
+    const dataDir = path.join(__dirname, '../../data');
     const db = initializeDatabase(dataDir);
     await db.init();
-
     // Initialize alpha service
     const alphaService = new AlphaService();
-    await alphaService.initialize(db as any);
+    await alphaService.startMonitoring(db);
 
     // Basic health check endpoint
     app.get('/health', (req, res) => {

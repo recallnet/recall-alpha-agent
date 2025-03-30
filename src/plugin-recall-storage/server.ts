@@ -3,11 +3,6 @@ import { elizaLogger } from '@elizaos/core';
 import { RecallService } from './services/recall.service.ts';
 import { initializeDatabase } from '../database/index.ts';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { ICotDatabaseAdapter } from '../types/index.ts';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.RECALL_MONITOR_PORT || 3002;
@@ -15,13 +10,13 @@ const PORT = process.env.RECALL_MONITOR_PORT || 3002;
 async function startServer() {
   try {
     // Initialize database with same path as main app
-    const dataDir = path.join(__dirname, '../../../data');
+    const dataDir = path.resolve(process.cwd(), 'data');
     const db = initializeDatabase(dataDir);
     await db.init();
 
-    // Initialize alpha service
+    // Initialize recall service
     const recallService = new RecallService();
-    await recallService.initializeMonitoring(db as ICotDatabaseAdapter);
+    await recallService.initializeMonitoring(db);
 
     // Basic health check endpoint
     app.get('/health', (req, res) => {
