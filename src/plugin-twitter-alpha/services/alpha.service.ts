@@ -917,6 +917,7 @@ export class AlphaService extends Service {
       - Token Mint: ${tokenMint}
       - Is Mintable: ${raydiumData.isMintable ? '✅' : '❌'}
       - Has Any Pool: ${raydiumData.hasPool ? '✅' : '❌'}
+      - USDC pool age: ${raydiumData.poolData.usdcPoolAge}
   
     ${
       raydiumData.poolData
@@ -944,12 +945,39 @@ export class AlphaService extends Service {
     // USDC on Solana address for the "from" token
     const usdcAddress = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
-    await handleUserInput(
-      `Determine if the following detected signal represents potential alpha. Remember that your task as an alpha detection agent sometimes involves performing risky trades. 
+    const tokenBalances = await handleUserInput('What are my token balances?', agentId);
+    elizaLogger.info(JSON.stringify(tokenBalances), 'token balances');
+
+    const agentRes = await handleUserInput(
+      `Determine if the following detected signal represents potential alpha. Remember that your task as an alpha detection agent sometimes involves performing risky trades. Only approve a purchase of a token if the USDC pool is less than 2 days old.
+
+      If it does reflect potential alpha, your task is to determine how much we should purchase of this token in USDC. If none should be purchased, you can return 0.
+
+      Here's the usdc token address on Solana: ${usdcAddress}.
+
+      Here are our current token balances: ${JSON.stringify(tokenBalances[1])}.
+
+      Here's the token information for you to evaluate ${cleanedLogInfo}.
       
-To execute a trade, I'll need to swap USDC (${usdcAddress}) to ${tokenMint}. For example: "Execute a trade of 50 "${usdcAddress}" to "${tokenMint}"". The from address and to address must always be wrapped in double quotes. If it does reflect alpha, use the EXECUTE_TRADE action to buy this token. Here's the token information for you to evaluate ${cleanedLogInfo}`,
+      ONLY respond with a number representing the amount in based on our available USDC balance we should purchase, or zero if none should be purchased.
+      `,
       agentId,
     );
+
+    if (agentRes && agentRes[0]) {
+      try {
+        const numberToBuy = Number(agentRes[0].text);
+        if (numberToBuy > 0) {
+          await handleUserInput(
+            `Execute a trade of ${numberToBuy} "${usdcAddress}" to "${tokenMint}"`,
+            agentId,
+          );
+        }
+      } catch (error) {
+        this.logger.error(`Error making trade in [AlphaService]: ${error.message}`);
+        return null;
+      }
+    }
 
     await this.storeAlphaAnalysis({
       tokenMint,
