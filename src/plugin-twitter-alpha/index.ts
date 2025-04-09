@@ -6,7 +6,7 @@ export const twitterAlphaPlugin: Plugin = {
   description: 'Collects alpha signals from Twitter',
   actions: [],
   evaluators: [],
-  providers: [unpostedAlphaProvider],
+  // providers: [unpostedAlphaProvider],
   services: [],
 };
 

@@ -17,6 +17,8 @@ import { recallStoragePlugin } from './plugin-recall-storage/index.ts';
 import { twitterAlphaPlugin } from './plugin-twitter-alpha/index.ts';
 import { AlphaService } from './plugin-twitter-alpha/services/alpha.service.ts';
 import { RecallService } from './plugin-recall-storage/services/recall.service.ts';
+import { TradingSimulatorService } from './plugin-trading-simulator/services/trading-simulator.service.ts';
+import { tradingSimulatorPlugin } from './plugin-trading-simulator/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +44,7 @@ export function createAgent(character: Character, db: any, cache: any, token: st
     plugins: [
       bootstrapPlugin,
       recallStoragePlugin,
+      tradingSimulatorPlugin,
       twitterAlphaPlugin,
       nodePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
@@ -91,6 +94,10 @@ async function startAgent(character: Character, directClient: DirectClient) {
     await recallService.initialize(runtime);
     runtime.registerService(recallService);
 
+    const tradingSimulatorService = new TradingSimulatorService();
+    await tradingSimulatorService.initialize(runtime);
+    runtime.registerService(tradingSimulatorService);
+
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
 
@@ -123,7 +130,7 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
 
 const startAgents = async () => {
   const directClient = new DirectClient();
-  let serverPort = parseInt(settings.SERVER_PORT || '3000');
+  let serverPort = parseInt(settings.SERVER_PORT || '3001');
   // const args = parseArguments();
 
   const charactersArg = 'characters/recall.character.json';

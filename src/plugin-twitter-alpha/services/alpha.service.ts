@@ -1,6 +1,7 @@
 import { Scraper, Profile } from 'agent-twitter-client';
 import { SolanaService } from './solana.service.ts';
 import { elizaLogger, IAgentRuntime, Service, ServiceType, IDatabaseAdapter } from '@elizaos/core';
+import { handleUserInput } from '../../chat/index.ts';
 
 interface TwitterUser {
   id: string;
@@ -840,6 +841,37 @@ export class AlphaService extends Service {
     }
   }
 
+  /**
+   * Gets the agent ID from the accounts table
+   * @returns The agent ID or null if not found
+   */
+  public async getAlphaAgentId(): Promise<string | null> {
+    try {
+      const db = this.getDatabaseAdapter();
+
+      if ('pool' in db) {
+        // PostgreSQL
+        const result = await (db as any).pool.query(
+          'SELECT id FROM accounts WHERE name = \'AlphaAgent\' ORDER BY "createdAt" DESC LIMIT 1',
+        );
+        return result.rows.length > 0 ? result.rows[0].id : null;
+      } else if ('db' in db) {
+        // SQLite
+        const result = (db as any).db
+          .prepare(
+            "SELECT id FROM accounts WHERE name = 'AlphaAgent' ORDER BY createdAt DESC LIMIT 1",
+          )
+          .get();
+        return result ? result.id : null;
+      } else {
+        throw new Error('Unsupported database adapter');
+      }
+    } catch (error) {
+      this.logger.error(`Error getting agent ID from accounts: ${error.message}`);
+      return null;
+    }
+  }
+
   async evaluatePotentialAlpha(newFollow: TwitterUser) {
     if (!newFollow.bio) return;
 
@@ -871,7 +903,7 @@ export class AlphaService extends Service {
       return;
     }
 
-    elizaLogger.info(`Complete analysis for @${newFollow.username}:
+    const logInfo = `Complete analysis for @${newFollow.username}:
     • Profile Information:
       - Username: @${newFollow.username}
       - Name: ${profile?.name || 'N/A'}
@@ -892,7 +924,33 @@ export class AlphaService extends Service {
       - WSOL Pool: ${raydiumData.poolData.wsolPool ? `✅ (${raydiumData.poolData.wsolPoolAge.toFixed(2)} days old)` : '❌'}
       - USDC Pool: ${raydiumData.poolData.usdcPool ? `✅ (${raydiumData.poolData.usdcPoolAge.toFixed(2)} days old)` : '❌'}`
         : ''
-    }`);
+    }`;
+
+    elizaLogger.info(logInfo);
+
+    // Get agent ID from accounts or fall back to runtime agent ID
+    const agentId = (await this.getAlphaAgentId()) || this.runtime.agentId;
+    elizaLogger.info(`Using agent ID: ${agentId} for alpha evaluation`);
+
+    // Create a properly formatted single-line message without special characters
+    const cleanedLogInfo = logInfo
+      .replace(/\n/g, ' ') // Replace newlines with spaces
+      .replace(/•/g, '') // Remove bullet points
+      .replace(/✅/g, 'Yes') // Replace checkmarks with 'Yes'
+      .replace(/❌/g, 'No') // Replace X marks with 'No'
+      .replace(/\s{2,}/g, ' ') // Replace multiple spaces with single space
+      .trim(); // Remove leading/trailing whitespace
+
+    // USDC on Solana address for the "from" token
+    const usdcAddress = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+    await handleUserInput(
+      `Determine if the following detected signal represents potential alpha. Remember that your task as an alpha detection agent sometimes involves performing risky trades. 
+      
+To execute a trade, I'll need to swap USDC (${usdcAddress}) to ${tokenMint}. For example: "Execute a trade of 50 "${usdcAddress}" to "${tokenMint}"". The from address and to address must always be wrapped in double quotes. If it does reflect alpha, use the EXECUTE_TRADE action to buy this token. Here's the token information for you to evaluate ${cleanedLogInfo}`,
+      agentId,
+    );
+
     await this.storeAlphaAnalysis({
       tokenMint,
       username: newFollow.username,

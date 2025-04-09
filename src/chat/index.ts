@@ -6,19 +6,26 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
+interface AgentMessage {
+  text: string;
+  userId?: string;
+  agentId?: string;
+  // any other properties that might be in the response
+}
+
 rl.on('SIGINT', () => {
   rl.close();
   process.exit(0);
 });
 
-async function handleUserInput(input, agentId) {
+export async function handleUserInput(input, agentId): Promise<AgentMessage[] | undefined> {
   if (input.toLowerCase() === 'exit') {
     rl.close();
     process.exit(0);
   }
 
   try {
-    const serverPort = parseInt(settings.SERVER_PORT || '3000');
+    const serverPort = parseInt(process.env.SERVER_PORT || '3000');
 
     const response = await fetch(`http://localhost:${serverPort}/${agentId}/message`, {
       method: 'POST',
@@ -32,6 +39,7 @@ async function handleUserInput(input, agentId) {
 
     const data = await response.json();
     data.forEach((message) => console.log(`${'Agent'}: ${message.text}`));
+    return data;
   } catch (error) {
     console.error('Error fetching response:', error);
   }

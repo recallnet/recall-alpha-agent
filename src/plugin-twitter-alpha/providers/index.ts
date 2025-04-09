@@ -69,14 +69,15 @@ export const unpostedAlphaProvider: Provider = {
           addedAt: entry.addedAt,
         };
       });
-      _state.knowledge =
-        `Use the following alpha signal to create a post about this potential opportunity: \n` +
+      _state.knowledge +=
+        `Use the following alpha signal to potentially perform a simulated purchase: \n` +
         JSON.stringify(formattedAlpha[0], null, 2) +
         `\n NOTE: if this field exists, you should absolutely create a Twitter post as your action`;
       await runtime.updateRecentMessageState(_state);
       return (
-        `Use the following alpha signal to create a post about this potential opportunity: \n` +
-        JSON.stringify(formattedAlpha[0], null, 2)
+        `Use the following alpha signal to potentially perform a simulated purchase: \n` +
+        JSON.stringify(formattedAlpha[0], null, 2) +
+        `\n NOTE: if this field exists, you should absolutely create a Twitter post as your action`
       );
     } catch (error) {
       elizaLogger.error(

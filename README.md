@@ -106,8 +106,9 @@ TWITTER_EMAIL=your-twitter-email
 
 # Recall Storage
 RECALL_PRIVATE_KEY="your-private-key"
-RECALL_BUCKET_ALIAS="your-default-bucket"
-RECALL_COT_LOG_PREFIX="cot/"
+RECALL_BUCKET_ALIAS='alpha-0'
+RECALL_COT_PREFIX='competition/v0/cot/'
+RECALL_TRADES_PREFIX='competition/v0/trades/'
 
 # Database Configuration (Postgres/SQLite)
 POSTGRES_URL=your-postgres-url

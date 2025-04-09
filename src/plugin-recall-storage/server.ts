@@ -5,7 +5,7 @@ import { initializeDatabase } from '../database/index.ts';
 import path from 'path';
 
 const app = express();
-const PORT = process.env.RECALL_MONITOR_PORT || 3002;
+const PORT = Number(process.env.SERVER_PORT) + 2 || 3002;
 
 async function startServer() {
   try {
