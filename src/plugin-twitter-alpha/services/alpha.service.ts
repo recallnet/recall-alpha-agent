@@ -972,7 +972,7 @@ export class AlphaService extends Service {
         const numberToBuy = Number(agentRes[0].text);
         if (numberToBuy > 0) {
           await handleUserInput(
-            `Execute a trade of ${numberToBuy} "${usdcAddress}" to "${tokenMint}"`,
+            `Execute a trade of ${numberToBuy} ${usdcAddress} to ${tokenMint}`,
             agentId,
           );
         }
